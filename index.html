@@ -9,6 +9,12 @@
     
     <meta name="theme-color" content="#0B2447"/>
     <link rel="manifest" href="/manifest.json">
+
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Agendar">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         :root { --theme-color: #0B2447; }
@@ -30,6 +36,7 @@
     </style>
 </head>
 <body class="bg-gray-100">
+
     <div id="app" class="max-w-lg mx-auto p-4">
 
         <div id="loading-screen" class="flex flex-col items-center justify-center min-h-screen">
@@ -266,7 +273,6 @@
         let lastReportType = 'daily';
 
         
-        // ================= ALTERAÇÕES PARA PWA (INÍCIO) ================= //
         // --- REGISTRO DO SERVICE WORKER ---
         if ('serviceWorker' in navigator) {
           window.addEventListener('load', () => {
@@ -279,7 +285,6 @@
               });
           });
         }
-        // ================= ALTERAÇÕES PARA PWA (FIM) =================== //
 
 
         // --- NOVA FUNÇÃO PARA CHAMAR A API ---
@@ -337,7 +342,7 @@
             }
         }
 
-        // --- AQUI COMEÇA TODO O SEU CÓDIGO JAVASCRIPT ORIGINAL, SEM NENHUMA ALTERAÇÃO ---
+        // --- O RESTANTE DO SEU CÓDIGO JAVASCRIPT ORIGINAL, SEM NENHUMA ALTERAÇÃO ---
         function applyTheme(color) { document.documentElement.style.setProperty('--theme-color', color); }
         function setupFormUI(settings) { document.getElementById('app-name').textContent = settings.appName || 'Sistema de Marcação'; document.getElementById('app-logo').src = settings.appLogoUrl || 'https://placehold.co/100x100/cccccc/FFFFFF?text=Logo'; document.getElementById('app-address').textContent = settings.appAddress || ''; document.getElementById('app-phone').textContent = settings.appPhone || ''; if (settings.appCoverUrl) { document.getElementById('cover-photo').style.backgroundImage = `url('${settings.appCoverUrl}')`; } const dateInput = document.getElementById('bookingDate'); const today = new Date(); today.setHours(0, 0, 0, 0); dateInput.min = today.toISOString().split('T')[0]; let finalMaxDate = null; if (settings.dateLimit && !isNaN(Number(settings.dateLimit))) { const maxDateFromLimit = new Date(today); maxDateFromLimit.setDate(today.getDate() + Number(settings.dateLimit)); finalMaxDate = maxDateFromLimit; } if (settings.schedulingEndDate && settings.schedulingEndDate.trim() !== "") { try { const parts = settings.schedulingEndDate.split('/'); if (parts.length === 3) { const endDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])); if (!isNaN(endDate.getTime())) { if (finalMaxDate === null || endDate < finalMaxDate) { finalMaxDate = endDate; } } } } catch (e) { console.error("Data de Encerramento inválida:", settings.schedulingEndDate); } } if (finalMaxDate) { dateInput.max = finalMaxDate.toISOString().split('T')[0]; } }
         function setupEndedUI(settings) { document.getElementById('ended-app-name').textContent = settings.appName || 'Sistema de Marcação'; document.getElementById('ended-logo').src = settings.appLogoUrl || 'https://placehold.co/100x100/cccccc/FFFFFF?text=Logo'; document.getElementById('ended-message').textContent = settings.schedulingEndedMsg || 'O período de marcações está encerrado.'; if (settings.appCoverUrl) { document.getElementById('ended-cover-photo').style.backgroundImage = `url('${settings.appCoverUrl}')`; } }
