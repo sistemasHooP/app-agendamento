@@ -6,6 +6,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <meta name="theme-color" content="#0B2447"/>
+    <link rel="manifest" href="/manifest.json">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         :root { --theme-color: #0B2447; }
@@ -246,6 +249,7 @@
         </div>
     </div>
 
+
     <footer class="text-center p-4">
         <button id="admin-link" class="text-sm text-gray-500 hover:theme-text font-semibold py-1 px-2 rounded-lg transition-colors">Painel ADM</button>
         <p class="text-xs text-gray-500 mt-1">Desenvolvido por Thiego Pereira</p>
@@ -261,12 +265,29 @@
         let lastDashboardData = null;
         let lastReportType = 'daily';
 
+        
+        // ================= ALTERAÇÕES PARA PWA (INÍCIO) ================= //
+        // --- REGISTRO DO SERVICE WORKER ---
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+              .then(registration => {
+                console.log('Service Worker registrado com sucesso:', registration);
+              })
+              .catch(error => {
+                console.log('Falha ao registrar o Service Worker:', error);
+              });
+          });
+        }
+        // ================= ALTERAÇÕES PARA PWA (FIM) =================== //
+
+
         // --- NOVA FUNÇÃO PARA CHAMAR A API ---
         async function callApi(action, params = {}) {
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Usar text/plain para evitar o 'preflight' do CORS
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({ action, params }),
                     redirect: "follow"
                 });
@@ -285,12 +306,12 @@
 
             } catch (error) {
                 console.error(`Erro ao chamar a API para a ação "${action}":`, error);
-                showError(error); // Mostra o erro na tela para o usuário
-                throw error; // Re-lança o erro para interromper a execução
+                showError(error);
+                throw error;
             }
         }
         
-        // --- FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO (MODIFICADA) ---
+        // --- FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO ---
         document.addEventListener('DOMContentLoaded', initializeApp);
 
         async function initializeApp() {
@@ -302,7 +323,6 @@
                 setupFormUI(appSettings);
                 setupEndedUI(appSettings);
                 
-                // Decide qual tela mostrar com base nos dados da API
                 if (appSettings.isSchedulingEnded) {
                     showScreen('ended-screen');
                 } else {
@@ -312,261 +332,27 @@
                 addEventListeners();
                 toggleInfoSupportButton();
             } catch (error) {
-                // Se a API falhar no início, mostra uma mensagem de erro geral
                 const loadingScreen = document.getElementById('loading-screen');
                 loadingScreen.innerHTML = `<p class="text-red-500 text-center">Não foi possível carregar as configurações do aplicativo.<br>Por favor, tente novamente mais tarde.</p>`;
             }
         }
 
-        // --- FUNÇÕES DE SETUP E UI (sem grandes mudanças) ---
+        // --- AQUI COMEÇA TODO O SEU CÓDIGO JAVASCRIPT ORIGINAL, SEM NENHUMA ALTERAÇÃO ---
         function applyTheme(color) { document.documentElement.style.setProperty('--theme-color', color); }
-        function setupFormUI(settings) {
-            document.getElementById('app-name').textContent = settings.appName || 'Sistema de Marcação';
-            document.getElementById('app-logo').src = settings.appLogoUrl || 'https://placehold.co/100x100/cccccc/FFFFFF?text=Logo';
-            document.getElementById('app-address').textContent = settings.appAddress || '';
-            document.getElementById('app-phone').textContent = settings.appPhone || '';
-            if (settings.appCoverUrl) { document.getElementById('cover-photo').style.backgroundImage = `url('${settings.appCoverUrl}')`; }
-            const dateInput = document.getElementById('bookingDate');
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            dateInput.min = today.toISOString().split('T')[0];
-            let finalMaxDate = null;
-            if (settings.dateLimit && !isNaN(Number(settings.dateLimit))) {
-                const maxDateFromLimit = new Date(today);
-                maxDateFromLimit.setDate(today.getDate() + Number(settings.dateLimit));
-                finalMaxDate = maxDateFromLimit;
-            }
-            if (settings.schedulingEndDate && settings.schedulingEndDate.trim() !== "") {
-                try {
-                    const parts = settings.schedulingEndDate.split('/');
-                    if (parts.length === 3) {
-                        const endDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-                        if (!isNaN(endDate.getTime())) {
-                            if (finalMaxDate === null || endDate < finalMaxDate) {
-                                finalMaxDate = endDate;
-                            }
-                        }
-                    }
-                } catch (e) { console.error("Data de Encerramento inválida:", settings.schedulingEndDate); }
-            }
-            if (finalMaxDate) { dateInput.max = finalMaxDate.toISOString().split('T')[0]; }
-        }
-        function setupEndedUI(settings) {
-            document.getElementById('ended-app-name').textContent = settings.appName || 'Sistema de Marcação';
-            document.getElementById('ended-logo').src = settings.appLogoUrl || 'https://placehold.co/100x100/cccccc/FFFFFF?text=Logo';
-            document.getElementById('ended-message').textContent = settings.schedulingEndedMsg || 'O período de marcações está encerrado.';
-            if (settings.appCoverUrl) { document.getElementById('ended-cover-photo').style.backgroundImage = `url('${settings.appCoverUrl}')`; }
-        }
-        function showScreen(screenId) {
-            document.querySelectorAll('#app > div').forEach(screen => screen.classList.add('hidden'));
-            const screenToShow = document.getElementById(screenId);
-            if (screenToShow) screenToShow.classList.remove('hidden');
-            window.scrollTo(0, 0);
-        }
-        function resetAndShowForm() {
-            document.getElementById('booking-form').reset();
-            selectedTime = null;
-            updateSubmitButtonState();
-            document.getElementById('time-slots').innerHTML = '<p class="col-span-full text-center text-gray-500 p-4 bg-gray-50 rounded-lg">Selecione uma data.</p>';
-            showScreen('form-screen');
-        }
-
-        // --- FUNÇÕES DE AGENDAMENTO (MODIFICADAS PARA USAR A API) ---
-        async function fetchAvailableSlots() {
-            const dateInput = document.getElementById('bookingDate');
-            const timeSlotsDiv = document.getElementById('time-slots');
-            const selectedDateStr = dateInput.value;
-            selectedTime = null;
-            updateSubmitButtonState();
-            showFormError('');
-            if (!selectedDateStr) {
-                timeSlotsDiv.innerHTML = '<p class="col-span-full text-center text-gray-500 p-4 bg-gray-50 rounded-lg">Selecione uma data.</p>';
-                return;
-            }
-            const selectedDate = new Date(selectedDateStr + "T00:00:00-03:00");
-            const minDate = new Date(dateInput.min + "T00:00:00-03:00");
-            const maxDate = dateInput.max ? new Date(dateInput.max + "T00:00:00-03:00") : null;
-            if (selectedDate < minDate || (maxDate && selectedDate > maxDate)) {
-                showFormError("A data selecionada não é permitida. Por favor, escolha outra.");
-                timeSlotsDiv.innerHTML = '<p class="col-span-full text-center text-red-500 p-4 bg-red-50 rounded-lg">Data inválida.</p>';
-                return;
-            }
-            timeSlotsDiv.innerHTML = `<div class="col-span-full grid grid-cols-3 sm:grid-cols-4 gap-2 animate-pulse">${Array(8).fill('<div class="h-9 bg-gray-200 rounded-lg"></div>').join('')}</div>`;
-            try {
-                const slots = await callApi('getAvailableSlots', { dateString: selectedDateStr });
-                updateSlotsUI(slots);
-            } catch (error) {
-                timeSlotsDiv.innerHTML = '<p class="col-span-full text-center text-red-500 p-4 bg-red-50 rounded-lg">Erro ao carregar horários.</p>';
-            }
-        }
-        function updateSlotsUI(slots) {
-            const timeSlotsDiv = document.getElementById('time-slots');
-            if (slots && slots.length > 0) {
-                timeSlotsDiv.innerHTML = slots.map(slot => `<button type="button" onclick="selectTime(this, '${slot}')" class="time-slot-btn w-full text-center py-2 px-1 border rounded-lg bg-gray-100 hover:theme-bg hover:text-white transition duration-200">${slot}</button>`).join('');
-            } else {
-                timeSlotsDiv.innerHTML = '<p class="col-span-full text-center text-gray-500 p-4 bg-gray-100 rounded-lg">Nenhum horário disponível para este dia.</p>';
-            }
-        }
-        function selectTime(element, time) {
-            document.querySelectorAll('.time-slot-btn').forEach(btn => {
-                btn.classList.remove('theme-bg', 'text-white');
-                btn.classList.add('bg-gray-100');
-            });
-            element.classList.add('theme-bg', 'text-white');
-            element.classList.remove('bg-gray-100');
-            selectedTime = time;
-            showFormError('');
-            updateSubmitButtonState();
-        }
-        async function handleBookingSubmit(event) {
-            event.preventDefault();
-            if (isLoading) return;
-            if (!selectedTime) { showFormError('Por favor, selecione um horário.'); return; }
-            if (document.getElementById('fullName').value.length < 3) { showFormError('Por favor, insira o seu nome completo.'); return; }
-            if (document.getElementById('phone').value.replace(/\D/g, '').length < 10) { showFormError('Por favor, insira um telefone válido com indicativo.'); return; }
-            
-            const submitButton = document.getElementById('submit-booking-btn');
-            const originalButtonText = "Marcar Horário";
-            toggleLoading(true, 'submit-booking-btn', originalButtonText);
-            
-            const bookingData = { fullName: document.getElementById('fullName').value, phone: document.getElementById('phone').value, date: document.getElementById('bookingDate').value, time: selectedTime };
-            
-            try {
-                const response = await callApi('saveAppointment', { bookingData });
-                if (response.success) {
-                    const dateObj = new Date(bookingData.date + 'T12:00:00');
-                    const formattedDate = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-                    document.getElementById('confirmation-details').innerHTML = `Obrigado, <strong>${bookingData.fullName}</strong>!<br>A sua marcação para <strong>${formattedDate}</strong> às <strong>${bookingData.time}</strong> foi confirmada.`;
-                    showScreen('confirmation-screen');
-                } else {
-                    showFormError(response.message || 'Ocorreu um erro.');
-                }
-            } finally {
-                 toggleLoading(false, 'submit-booking-btn', originalButtonText);
-            }
-        }
-
-        // --- FUNÇÕES DO PAINEL DE ADMIN (MODIFICADAS PARA USAR A API) ---
-        async function handleAdminLogin(event) {
-            event.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const errorDiv = document.getElementById('login-error');
-            const loginBtn = document.querySelector('#login-form button[type="submit"]');
-            const originalText = loginBtn.innerHTML;
-
-            loginBtn.disabled = true;
-            loginBtn.innerHTML = '<div class="loader mx-auto" style="width: 24px; height: 24px; border-width: 3px;"></div>';
-            
-            try {
-                const response = await callApi('checkAdminLogin', { credentials: { username, password } });
-                if (response.success) {
-                    errorDiv.classList.add('hidden');
-                    showScreen('admin-panel-screen');
-                    const todayStr = new Date().toISOString().split('T')[0];
-                    document.getElementById('report-date').value = todayStr;
-                    const sevenDaysAgo = new Date();
-                    sevenDaysAgo.setDate(new Date().getDate() - 6);
-                    document.getElementById('chart-start-date').value = sevenDaysAgo.toISOString().split('T')[0];
-                    document.getElementById('chart-end-date').value = todayStr;
-                    loadDailyDashboard();
-                    loadChartData();
-                } else {
-                    errorDiv.textContent = response.message;
-                    errorDiv.classList.remove('hidden');
-                }
-            } catch (error) {
-                errorDiv.textContent = "Erro de comunicação. Tente novamente.";
-                errorDiv.classList.remove('hidden');
-            } finally {
-                loginBtn.disabled = false;
-                loginBtn.innerHTML = originalText;
-            }
-        }
-
-        async function loadDailyDashboard() {
-            const date = document.getElementById('report-date').value;
-            if (!date) return;
-            document.getElementById('dashboard-content').innerHTML = '<div class="flex justify-center p-8"><div class="loader"></div></div>';
-            try {
-                const data = await callApi('getAdminDashboardData', { dateString: date });
-                renderAdminReport(data);
-            } catch (error) {
-                document.getElementById('dashboard-content').innerHTML = `<p class="text-red-500">${error.message}</p>`;
-            }
-        }
-
-        async function loadWeeklyDashboard() {
-            const date = document.getElementById('report-date').value;
-            if (!date) { showCustomAlert("Por favor, selecione uma data de referência."); return; }
-            document.getElementById('dashboard-content').innerHTML = '<div class="flex justify-center p-8"><div class="loader"></div></div>';
-            try {
-                const data = await callApi('getWeeklyData', { dateString: date });
-                renderWeeklyReport(data);
-            } catch(error) {
-                document.getElementById('dashboard-content').innerHTML = `<p class="text-red-500">${error.message}</p>`;
-            }
-        }
-
-        async function loadChartData() {
-            const startDate = document.getElementById('chart-start-date').value;
-            const endDate = document.getElementById('chart-end-date').value;
-            if (!startDate || !endDate) return;
-            try {
-                const data = await callApi('getChartData', { startDateString: startDate, endDateString: endDate });
-                renderChart(data);
-            } catch(error) {
-                console.error("Erro ao carregar dados do gráfico:", error.message);
-            }
-        }
-        
-        async function handleSettingsSave(event) {
-            event.preventDefault();
-            const form = event.target;
-            const newSettings = {};
-            const formData = new FormData(form);
-            for (const [key, value] of formData.entries()) { newSettings[key] = value; }
-            const saveButton = document.getElementById('save-settings-btn');
-            const originalText = 'Guardar Alterações';
-            toggleLoading(true, 'save-settings-btn', originalText);
-            try {
-                const response = await callApi('updateAppSettings', { newSettings });
-                if (response.success) {
-                    showCustomAlert('Configurações guardadas com sucesso! A página será recarregada.');
-                    setTimeout(() => { window.location.reload(); }, 2000);
-                } else {
-                    showCustomAlert('Erro: ' + response.message);
-                }
-            } finally {
-                toggleLoading(false, 'save-settings-btn', originalText);
-            }
-        }
-        
-        // --- AS DEMAIS FUNÇÕES (renderização, modais, etc.) permanecem praticamente as mesmas ---
-        // Elas apenas chamarão as novas funções async que usam a API.
-        
-        // Exemplo de uma pequena adaptação:
-        function confirmDeleteAppointment(appointmentId) {
-            const onConfirm = async () => {
-                document.body.style.cursor = 'wait';
-                try {
-                    const response = await callApi('deleteAppointment', { appointmentId });
-                    showCustomAlert(response.message);
-                    if (response.success) {
-                        if (lastReportType === 'daily') { loadDailyDashboard(); } 
-                        else { loadWeeklyDashboard(); }
-                    }
-                } finally {
-                    document.body.style.cursor = 'default';
-                }
-            };
-            showCustomConfirm("Tem a certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.", onConfirm);
-        }
-
-        // Adicione aqui o RESTANTE das suas funções JavaScript que não foram modificadas acima.
-        // O Gemini irá adicioná-las na próxima mensagem se necessário.
-        // Funções como: formatPhone, renderAdminReport, renderWeeklyReport, printReport, etc.
-
+        function setupFormUI(settings) { document.getElementById('app-name').textContent = settings.appName || 'Sistema de Marcação'; document.getElementById('app-logo').src = settings.appLogoUrl || 'https://placehold.co/100x100/cccccc/FFFFFF?text=Logo'; document.getElementById('app-address').textContent = settings.appAddress || ''; document.getElementById('app-phone').textContent = settings.appPhone || ''; if (settings.appCoverUrl) { document.getElementById('cover-photo').style.backgroundImage = `url('${settings.appCoverUrl}')`; } const dateInput = document.getElementById('bookingDate'); const today = new Date(); today.setHours(0, 0, 0, 0); dateInput.min = today.toISOString().split('T')[0]; let finalMaxDate = null; if (settings.dateLimit && !isNaN(Number(settings.dateLimit))) { const maxDateFromLimit = new Date(today); maxDateFromLimit.setDate(today.getDate() + Number(settings.dateLimit)); finalMaxDate = maxDateFromLimit; } if (settings.schedulingEndDate && settings.schedulingEndDate.trim() !== "") { try { const parts = settings.schedulingEndDate.split('/'); if (parts.length === 3) { const endDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])); if (!isNaN(endDate.getTime())) { if (finalMaxDate === null || endDate < finalMaxDate) { finalMaxDate = endDate; } } } } catch (e) { console.error("Data de Encerramento inválida:", settings.schedulingEndDate); } } if (finalMaxDate) { dateInput.max = finalMaxDate.toISOString().split('T')[0]; } }
+        function setupEndedUI(settings) { document.getElementById('ended-app-name').textContent = settings.appName || 'Sistema de Marcação'; document.getElementById('ended-logo').src = settings.appLogoUrl || 'https://placehold.co/100x100/cccccc/FFFFFF?text=Logo'; document.getElementById('ended-message').textContent = settings.schedulingEndedMsg || 'O período de marcações está encerrado.'; if (settings.appCoverUrl) { document.getElementById('ended-cover-photo').style.backgroundImage = `url('${settings.appCoverUrl}')`; } }
+        function showScreen(screenId) { document.querySelectorAll('#app > div').forEach(screen => screen.classList.add('hidden')); const screenToShow = document.getElementById(screenId); if (screenToShow) screenToShow.classList.remove('hidden'); window.scrollTo(0, 0); }
+        function resetAndShowForm() { document.getElementById('booking-form').reset(); selectedTime = null; updateSubmitButtonState(); document.getElementById('time-slots').innerHTML = '<p class="col-span-full text-center text-gray-500 p-4 bg-gray-50 rounded-lg">Selecione uma data.</p>'; showScreen('form-screen'); }
+        async function fetchAvailableSlots() { const dateInput = document.getElementById('bookingDate'); const timeSlotsDiv = document.getElementById('time-slots'); const selectedDateStr = dateInput.value; selectedTime = null; updateSubmitButtonState(); showFormError(''); if (!selectedDateStr) { timeSlotsDiv.innerHTML = '<p class="col-span-full text-center text-gray-500 p-4 bg-gray-50 rounded-lg">Selecione uma data.</p>'; return; } const selectedDate = new Date(selectedDateStr + "T00:00:00-03:00"); const minDate = new Date(dateInput.min + "T00:00:00-03:00"); const maxDate = dateInput.max ? new Date(dateInput.max + "T00:00:00-03:00") : null; if (selectedDate < minDate || (maxDate && selectedDate > maxDate)) { showFormError("A data selecionada não é permitida. Por favor, escolha outra."); timeSlotsDiv.innerHTML = '<p class="col-span-full text-center text-red-500 p-4 bg-red-50 rounded-lg">Data inválida.</p>'; return; } timeSlotsDiv.innerHTML = `<div class="col-span-full grid grid-cols-3 sm:grid-cols-4 gap-2 animate-pulse">${Array(8).fill('<div class="h-9 bg-gray-200 rounded-lg"></div>').join('')}</div>`; try { const slots = await callApi('getAvailableSlots', { dateString: selectedDateStr }); updateSlotsUI(slots); } catch (error) { timeSlotsDiv.innerHTML = '<p class="col-span-full text-center text-red-500 p-4 bg-red-50 rounded-lg">Erro ao carregar horários.</p>'; } }
+        function updateSlotsUI(slots) { const timeSlotsDiv = document.getElementById('time-slots'); if (slots && slots.length > 0) { timeSlotsDiv.innerHTML = slots.map(slot => `<button type="button" onclick="selectTime(this, '${slot}')" class="time-slot-btn w-full text-center py-2 px-1 border rounded-lg bg-gray-100 hover:theme-bg hover:text-white transition duration-200">${slot}</button>`).join(''); } else { timeSlotsDiv.innerHTML = '<p class="col-span-full text-center text-gray-500 p-4 bg-gray-100 rounded-lg">Nenhum horário disponível para este dia.</p>'; } }
+        function selectTime(element, time) { document.querySelectorAll('.time-slot-btn').forEach(btn => { btn.classList.remove('theme-bg', 'text-white'); btn.classList.add('bg-gray-100'); }); element.classList.add('theme-bg', 'text-white'); element.classList.remove('bg-gray-100'); selectedTime = time; showFormError(''); updateSubmitButtonState(); }
+        async function handleBookingSubmit(event) { event.preventDefault(); if (isLoading) return; if (!selectedTime) { showFormError('Por favor, selecione um horário.'); return; } if (document.getElementById('fullName').value.length < 3) { showFormError('Por favor, insira o seu nome completo.'); return; } if (document.getElementById('phone').value.replace(/\D/g, '').length < 10) { showFormError('Por favor, insira um telefone válido com indicativo.'); return; } const submitButton = document.getElementById('submit-booking-btn'); const originalButtonText = "Marcar Horário"; toggleLoading(true, 'submit-booking-btn', originalButtonText); const bookingData = { fullName: document.getElementById('fullName').value, phone: document.getElementById('phone').value, date: document.getElementById('bookingDate').value, time: selectedTime }; try { const response = await callApi('saveAppointment', { bookingData }); if (response.success) { const dateObj = new Date(bookingData.date + 'T12:00:00'); const formattedDate = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); document.getElementById('confirmation-details').innerHTML = `Obrigado, <strong>${bookingData.fullName}</strong>!<br>A sua marcação para <strong>${formattedDate}</strong> às <strong>${bookingData.time}</strong> foi confirmada.`; showScreen('confirmation-screen'); } else { showFormError(response.message || 'Ocorreu um erro.'); } } finally { toggleLoading(false, 'submit-booking-btn', originalButtonText); } }
+        async function handleAdminLogin(event) { event.preventDefault(); const username = document.getElementById('username').value; const password = document.getElementById('password').value; const errorDiv = document.getElementById('login-error'); const loginBtn = document.querySelector('#login-form button[type="submit"]'); const originalText = loginBtn.innerHTML; loginBtn.disabled = true; loginBtn.innerHTML = '<div class="loader mx-auto" style="width: 24px; height: 24px; border-width: 3px;"></div>'; try { const response = await callApi('checkAdminLogin', { credentials: { username, password } }); if (response.success) { errorDiv.classList.add('hidden'); showScreen('admin-panel-screen'); const todayStr = new Date().toISOString().split('T')[0]; document.getElementById('report-date').value = todayStr; const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(new Date().getDate() - 6); document.getElementById('chart-start-date').value = sevenDaysAgo.toISOString().split('T')[0]; document.getElementById('chart-end-date').value = todayStr; loadDailyDashboard(); loadChartData(); } else { errorDiv.textContent = response.message; errorDiv.classList.remove('hidden'); } } catch (error) { errorDiv.textContent = "Erro de comunicação. Tente novamente."; errorDiv.classList.remove('hidden'); } finally { loginBtn.disabled = false; loginBtn.innerHTML = originalText; } }
+        async function loadDailyDashboard() { const date = document.getElementById('report-date').value; if (!date) return; document.getElementById('dashboard-content').innerHTML = '<div class="flex justify-center p-8"><div class="loader"></div></div>'; try { const data = await callApi('getAdminDashboardData', { dateString: date }); renderAdminReport(data); } catch (error) { document.getElementById('dashboard-content').innerHTML = `<p class="text-red-500">${error.message}</p>`; } }
+        async function loadWeeklyDashboard() { const date = document.getElementById('report-date').value; if (!date) { showCustomAlert("Por favor, selecione uma data de referência."); return; } document.getElementById('dashboard-content').innerHTML = '<div class="flex justify-center p-8"><div class="loader"></div></div>'; try { const data = await callApi('getWeeklyData', { dateString: date }); renderWeeklyReport(data); } catch(error) { document.getElementById('dashboard-content').innerHTML = `<p class="text-red-500">${error.message}</p>`; } }
+        async function loadChartData() { const startDate = document.getElementById('chart-start-date').value; const endDate = document.getElementById('chart-end-date').value; if (!startDate || !endDate) return; try { const data = await callApi('getChartData', { startDateString: startDate, endDateString: endDate }); renderChart(data); } catch(error) { console.error("Erro ao carregar dados do gráfico:", error.message); } }
+        async function handleSettingsSave(event) { event.preventDefault(); const form = event.target; const newSettings = {}; const formData = new FormData(form); for (const [key, value] of formData.entries()) { newSettings[key] = value; } const saveButton = document.getElementById('save-settings-btn'); const originalText = 'Guardar Alterações'; toggleLoading(true, 'save-settings-btn', originalText); try { const response = await callApi('updateAppSettings', { newSettings }); if (response.success) { showCustomAlert('Configurações guardadas com sucesso! A página será recarregada.'); setTimeout(() => { window.location.reload(); }, 2000); } else { showCustomAlert('Erro: ' + response.message); } } finally { toggleLoading(false, 'save-settings-btn', originalText); } }
+        function confirmDeleteAppointment(appointmentId) { const onConfirm = async () => { document.body.style.cursor = 'wait'; try { const response = await callApi('deleteAppointment', { appointmentId }); showCustomAlert(response.message); if (response.success) { if (lastReportType === 'daily') { loadDailyDashboard(); } else { loadWeeklyDashboard(); } } } finally { document.body.style.cursor = 'default'; } }; showCustomConfirm("Tem a certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.", onConfirm); }
         function formatPhone(input) { let value = input.value.replace(/\D/g, '').substring(0, 11); if (value.length > 10) value = `(${value.substring(0, 2)}) ${value.substring(2, 7)}-${value.substring(7)}`; else if (value.length > 6) value = `(${value.substring(0, 2)}) ${value.substring(2, 6)}-${value.substring(6)}`; else if (value.length > 2) value = `(${value}`; else if (value.length > 0) value = `(${value}`; input.value = value; }
         function updateSubmitButtonState() { const btn = document.getElementById('submit-booking-btn'); const isValid = document.getElementById('fullName').value.length >= 3 && document.getElementById('phone').value.replace(/\D/g, '').length >= 10 && document.getElementById('bookingDate').value !== '' && selectedTime !== null; btn.disabled = !isValid; btn.classList.toggle('bg-gray-400', !isValid); btn.classList.toggle('cursor-not-allowed', !isValid); btn.classList.toggle('theme-bg', isValid); btn.classList.toggle('theme-hover-bg', isValid); }
         function showFormError(message) { document.getElementById('form-errors').textContent = message; }
