@@ -1,419 +1,577 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
     <base target="_top">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Agendamento RG</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    
-    <meta name="theme-color" content="#0B2447"/>
     <link rel="manifest" href="/manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        :root { --theme-color: #0B2447; }
-        body { font-family: 'Inter', sans-serif; background-color: #F3F4F6; }
-        .loader { border: 4px solid #f3f3f3; border-radius: 50%; border-top: 4px solid var(--theme-color); width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        :root { --theme-color: #0f172a; }
+        body { font-family: 'Roboto', sans-serif; background-color: #f8fafc; -webkit-tap-highlight-color: transparent; }
+        
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Loader Genérico */
+        .loader { border: 3px solid #e2e8f0; border-radius: 50%; border-top: 3px solid var(--theme-color); width: 30px; height: 30px; animation: spin 0.8s linear infinite; }
+        
+        /* Loader do Botão (Branco) */
+        .btn-loader { border: 3px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top: 3px solid #ffffff; width: 20px; height: 20px; animation: spin 0.8s linear infinite; display: inline-block; }
+        
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .theme-bg { background-color: var(--theme-color); }
-        .theme-text { color: var(--theme-color); }
-        .theme-ring:focus { ring-color: var(--theme-color); }
-        .theme-border { border-color: var(--theme-color); }
-        .theme-hover-bg:hover { background-color: var(--theme-color); opacity: 0.9; }
+        
+        /* APLICAR COR DO TEMA COM PRIORIDADE */
+        .theme-bg { background-color: var(--theme-color) !important; }
+        .theme-text { color: var(--theme-color) !important; }
+        .theme-ring:focus { ring-color: var(--theme-color); box-shadow: 0 0 0 2px var(--theme-color); }
+        
+        /* Cor do hover nos botões de horário não selecionados */
+        .slot-btn:hover:not(.theme-bg) { background-color: #e2e8f0; }
+
+        .admin-tab-active { border-bottom: 3px solid var(--theme-color); color: var(--theme-color); font-weight: 700; }
+        .admin-tab-inactive { color: #64748b; }
+        .modal-backdrop { background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); }
 
         @media print {
-            @page {
-                size: A4;
-                margin: 1.5cm;
-            }
+            body * { visibility: hidden; }
+            #printable-area, #printable-area * { visibility: visible; }
+            #printable-area { position: absolute; left: 0; top: 0; width: 100%; display: block !important; background: white; padding: 20px; }
+            #app, #loading-screen, .fixed { display: none !important; }
         }
     </style>
 </head>
-<body class="bg-gray-100">
-    <div id="app" class="max-w-lg mx-auto p-4">
+<body class="text-gray-800 bg-gray-50">
 
-        <div id="loading-screen" class="flex flex-col items-center justify-center min-h-screen">
-            <div class="loader"></div>
-            <p class="mt-4 text-gray-600">A carregar...</p>
-        </div>
-
-        <div id="form-screen" class="hidden">
-            <header class="theme-bg text-white rounded-lg shadow-md mb-6 overflow-hidden text-center">
-                <div id="cover-photo" class="h-32 bg-cover bg-center" style="background-image: url('https://placehold.co/600x200/cccccc/FFFFFF?text=Capa');">
-                </div>
-                <div class="p-4 relative">
-                    <img id="app-logo" src="" alt="Logo da App" class="w-24 h-24 mx-auto rounded-full border-4 border-white object-cover -mt-16 mb-2 shadow-lg">
-                    <h1 id="app-name" class="text-2xl font-bold"></h1>
-                    <p id="app-address" class="text-gray-200 text-sm mt-1"></p>
-                    <p id="app-phone" class="text-gray-200 text-sm"></p>
-                </div>
-            </header>
-            <main class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4">Faça seu Agendamento</h2>
-                <form id="booking-form">
-                    <div class="mb-4">
-                        <label for="fullName" class="block text-gray-600 mb-1">Nome Completo</label>
-                        <input type="text" id="fullName" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 theme-ring" required minlength="3">
-                    </div>
-                    <div class="mb-4">
-                        <label for="phone" class="block text-gray-600 mb-1">Telefone (WhatsApp)</label>
-                        <input type="tel" id="phone" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 theme-ring" required oninput="formatPhone(this)" maxlength="15">
-                    </div>
-                    <div class="mb-4">
-                        <label for="bookingDate" class="block text-gray-600 mb-1">Escolha a Data</label>
-                        <input type="date" id="bookingDate" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 theme-ring" required>
-                    </div>
-                    <div class="mb-6">
-                        <label class="block text-gray-600 mb-2">Horários Disponíveis</label>
-                        <div id="time-slots" class="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                            <p class="col-span-full text-center text-gray-500 p-4 bg-gray-50 rounded-lg">Selecione uma data.</p>
-                        </div>
-                    </div>
-                    <div id="form-errors" class="text-red-600 text-sm text-center mb-4 font-medium"></div>
-                    <button type="submit" id="submit-booking-btn" class="w-full bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition duration-300 cursor-not-allowed" disabled>Marcar Horário</button>
-                </form>
-            </main>
-        </div>
-        
-        <div id="confirmation-screen" class="hidden text-center bg-white p-8 rounded-lg shadow-md">
-            <svg class="w-16 h-16 mx-auto text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <h2 class="text-2xl font-bold text-gray-800 mt-4">Marcação Confirmada!</h2>
-            <p id="confirmation-details" class="text-gray-600 mt-2 leading-relaxed"></p>
-            <button onclick="resetAndShowForm()" class="mt-6 theme-bg theme-hover-bg text-white font-bold py-2 px-6 rounded-lg transition duration-300">Fazer Nova Marcação</button>
-        </div>
-        
-        <div id="ended-screen" class="hidden">
-            <header class="theme-bg text-white rounded-lg shadow-md mb-6 overflow-hidden text-center">
-                <div id="ended-cover-photo" class="h-32 bg-cover bg-center" style="background-image: url('https://placehold.co/600x200/cccccc/FFFFFF?text=Capa');"></div>
-                <div class="p-4 relative">
-                    <img id="ended-logo" src="" alt="Logo da App" class="w-24 h-24 mx-auto rounded-full border-4 border-white object-cover -mt-16 mb-2 shadow-lg">
-                    <h1 id="ended-app-name" class="text-2xl font-bold"></h1>
-                </div>
-            </header>
-            <main class="bg-white rounded-lg shadow-md p-8 text-center">
-                <i class="fas fa-info-circle fa-3x theme-text mb-4"></i>
-                <p id="ended-message" class="text-gray-700 text-lg leading-relaxed"></p>
-            </main>
-        </div>
-
-        <div id="license-expired-screen" class="hidden">
-            <header class="theme-bg text-white rounded-lg shadow-md mb-6 overflow-hidden text-center">
-                <div id="license-cover-photo" class="h-32 bg-cover bg-center" style="background-image: url('https://placehold.co/600x200/cccccc/FFFFFF?text=Capa');"></div>
-                <div class="p-4 relative">
-                    <img id="license-logo" src="" alt="Logo da App" class="w-24 h-24 mx-auto rounded-full border-4 border-white object-cover -mt-16 mb-2 shadow-lg">
-                    <h1 id="license-app-name" class="text-2xl font-bold"></h1>
-                </div>
-            </header>
-            <main class="bg-white rounded-lg shadow-md p-8 text-center">
-                <i class="fas fa-exclamation-triangle fa-3x text-red-500 mb-4"></i>
-                <h2 class="text-xl font-bold text-gray-800 mb-2">Licença Expirada</h2>
-                <p id="license-expired-message" class="text-gray-700 text-lg leading-relaxed"></p>
-            </main>
-        </div>
-        <div id="login-screen" class="hidden">
-            <div class="bg-white p-8 rounded-lg shadow-md max-w-sm mx-auto mt-20">
-                <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Acesso Administrativo</h2>
-                <form id="login-form">
-                    <div class="mb-4"><label for="username" class="block text-gray-600 mb-1">Utilizador</label><input type="text" id="username" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 theme-ring" required></div>
-                    <div class="mb-6"><label for="password" class="block text-gray-600 mb-1">Palavra-passe</label><input type="password" id="password" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 theme-ring" required></div>
-                    <p id="login-error" class="text-red-500 text-sm mt-2 text-center hidden"></p>
-                    <button type="submit" class="w-full mt-4 theme-bg theme-hover-bg text-white font-bold py-3 px-4 rounded-lg transition duration-300">Entrar</button>
-                </form>
-            </div>
-        </div>
-        
-        <div id="admin-panel-screen" class="hidden max-w-full">
-            <header class="bg-white rounded-lg shadow-md p-4 mb-6 flex justify-between items-center">
-                <h1 class="text-2xl font-bold theme-text">Painel de Controlo</h1>
-                <button id="logout-btn" class="text-gray-500 hover:text-red-600 transition"><i class="fas fa-sign-out-alt fa-lg"></i> <span class="text-sm">Sair</span></button>
-            </header>
-            <div class="mb-4 border-b border-gray-200">
-                <nav class="flex space-x-4" aria-label="Tabs">
-                    <button id="tab-dashboard" class="admin-tab theme-text theme-border border-b-2 font-medium px-3 py-2 text-sm">Dashboard</button>
-                    <button id="tab-blocks" class="admin-tab text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">Bloqueios</button>
-                    <button id="tab-settings" class="admin-tab text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">Configurações</button>
-                </nav>
-            </div>
-            <div id="admin-dashboard" class="admin-tab-content bg-white rounded-lg shadow-md p-6">
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold mb-2">Análise de Marcações</h3>
-                        <div class="flex flex-wrap items-center gap-4 mb-4 text-sm">
-                            <div><label for="chart-start-date" class="mr-2">De:</label><input type="date" id="chart-start-date" class="px-3 py-1 border rounded-lg focus:outline-none focus:ring-2 theme-ring"></div>
-                            <div><label for="chart-end-date" class="mr-2">Até:</label><input type="date" id="chart-end-date" class="px-3 py-1 border rounded-lg focus:outline-none focus:ring-2 theme-ring"></div>
-                        </div>
-                        <div id="chart-container" class="relative h-64"><canvas id="appointmentsChart"></canvas></div>
-                    </div>
-                    <hr class="my-6">
-                    <div>
-                        <div class="flex items-center mb-4 flex-wrap gap-2">
-                            <label for="report-date" class="mr-2 font-medium">Data de Referência:</label>
-                            <input type="date" id="report-date" class="px-3 py-1 border rounded-lg focus:outline-none focus:ring-2 theme-ring">
-                            <button id="view-day-btn" class="theme-bg theme-hover-bg text-white px-4 py-1 rounded-lg text-sm font-semibold">Ver Dia</button>
-                            <button id="view-week-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-1 rounded-lg text-sm font-semibold">Ver Semana</button>
-                        </div>
-                        <div id="dashboard-content"><p class="text-gray-500">Selecione uma data para ver o relatório.</p></div>
-                    </div>
-            </div>
-            <div id="admin-blocks" class="admin-tab-content hidden bg-white rounded-lg shadow-md p-6">
-                <h3 class="text-lg font-semibold mb-4">Gerenciar Bloqueios</h3>
-                <form id="add-block-form" class="mb-6 p-4 border rounded-lg bg-gray-50">
-                    <p class="font-medium mb-2">Adicionar Novo Bloqueio</p>
-                    <div class="flex flex-col sm:flex-row gap-4">
-                        <div class="flex-1">
-                            <label for="block-date" class="block text-sm font-medium text-gray-700">Data</label>
-                            <input type="date" id="block-date" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 theme-ring sm:text-sm">
-                        </div>
-                        <div class="flex-1">
-                            <label for="block-time" class="block text-sm font-medium text-gray-700">Hora (opcional)</label>
-                            <input type="time" id="block-time" step="1800" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 theme-ring sm:text-sm">
-                            <p class="text-xs text-gray-500 mt-1">Deixe em branco para bloquear o dia inteiro.</p>
-                        </div>
-                        <div class="flex items-end">
-                            <button type="submit" class="w-full sm:w-auto theme-bg theme-hover-bg text-white font-bold py-2 px-4 rounded-lg">Adicionar</button>
-                        </div>
-                    </div>
-                </form>
-                <hr class="my-6">
-                <p class="font-medium mb-2">Bloqueios Atuais</p>
-                <div id="blocks-list" class="overflow-y-auto max-h-64">
-                   <p class="text-gray-500">A carregar bloqueios...</p>
-                </div>
-            </div>
-            <div id="admin-settings" class="admin-tab-content hidden bg-white rounded-lg shadow-md p-6"><form id="settings-form"></form></div>
-        </div>
-    </div>
-    
-    <div id="info-support-button" class="hidden fixed bottom-4 right-4 z-40">
-        <button onclick="showInfoModal()" class="w-12 h-12 rounded-full theme-bg text-white shadow-lg flex items-center justify-center focus:outline-none hover:scale-110 transition-transform duration-300">
-            <i class="fas fa-info-circle fa-lg"></i>
-        </button>
+    <div id="loading-screen" class="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
+        <div class="loader mb-4"></div>
+        <p class="text-gray-500 text-sm font-medium animate-pulse">Carregando sistema...</p>
     </div>
 
-    <div id="info-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 h-full w-full z-50 flex items-center justify-center p-4">
-        <div class="relative mx-auto w-full max-w-sm shadow-lg rounded-xl bg-white text-center p-6 space-y-4">
-            
-            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full theme-bg -mt-16 border-4 border-white">
-                <i class="fas fa-info-circle fa-2x text-white"></i>
-            </div>
-    
-            <div id="info-modal-content">
-                </div>
-    
-            <div id="info-modal-support-section" class="hidden border-t pt-4">
-                <p class="text-sm text-gray-600 mb-2">Precisa de ajuda?</p>
-                <button onclick="handleSupportClick()" class="w-full px-6 py-2 bg-green-500 text-white text-md font-semibold rounded-lg shadow-md hover:opacity-90 transition-opacity">
-                    <i class="fab fa-whatsapp"></i> Falar com o Suporte
+    <div id="app" class="max-w-md mx-auto min-h-screen bg-white shadow-xl relative hidden flex flex-col">
+        
+        <!-- TELA CLIENTE -->
+        <div id="form-screen" class="fade-in flex-grow flex flex-col">
+            <div class="relative h-40 bg-gray-200 overflow-hidden shrink-0">
+                <div id="cover-photo" class="absolute inset-0 bg-cover bg-center" style="background-image: url('https://placehold.co/600x200/0f172a/FFFFFF?text=Prefeitura');"></div>
+                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                <button onclick="openHistoryModal()" class="absolute top-4 right-4 bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-bold hover:bg-white/30 transition">
+                    <i class="fas fa-history mr-1"></i> Meus Agendamentos
                 </button>
             </div>
 
-            <div class="pt-2">
-                <button onclick="hideInfoModal()" class="w-full px-6 py-2 bg-gray-200 text-gray-700 text-md font-semibold rounded-lg hover:bg-gray-300 transition-opacity">
-                    Fechar
+            <div class="px-6 -mt-10 relative shrink-0">
+                <img id="app-logo" src="https://placehold.co/100x100/eeeeee/333?text=Logo" class="w-20 h-20 rounded-xl border-4 border-white shadow-lg bg-white object-contain mx-auto">
+                <div class="text-center mt-3">
+                    <h1 id="app-name" class="text-2xl font-bold text-gray-800">Carregando...</h1>
+                    <p id="app-desc" class="text-sm text-gray-500 mt-1">Agendamento Online</p>
+                </div>
+            </div>
+
+            <div id="customer-notice-area" class="hidden px-6 mt-4">
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-3 text-sm text-blue-700 rounded-r shadow-sm">
+                    <p id="customer-notice-text"></p>
+                </div>
+            </div>
+
+            <form id="booking-form" class="p-6 space-y-5 flex-grow">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Seus Dados</label>
+                    <div class="space-y-3">
+                        <div class="relative">
+                            <i class="fas fa-user absolute left-3 top-3 text-gray-400"></i>
+                            <input type="text" id="fullName" placeholder="Nome Completo" class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none theme-ring" required minlength="3">
+                        </div>
+                        <div class="relative">
+                            <i class="fab fa-whatsapp absolute left-3 top-3 text-gray-400"></i>
+                            <input type="tel" id="phone" placeholder="WhatsApp (DDD + Número)" class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none theme-ring" required oninput="formatPhone(this)" maxlength="15">
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Data do Agendamento</label>
+                    <input type="date" id="bookingDate" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none theme-ring transition" required>
+                </div>
+
+                <div id="slots-container" class="hidden fade-in">
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Horários</label>
+                    <div id="time-slots" class="grid grid-cols-4 gap-2"></div>
+                </div>
+
+                <div id="form-errors" class="text-red-500 text-sm text-center hidden"></div>
+
+                <button type="submit" id="submit-booking-btn" class="w-full bg-gray-400 text-white font-bold py-4 rounded-xl shadow-lg transform transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    Confirmar Agendamento
                 </button>
+            </form>
+
+            <div class="text-center py-4 bg-gray-50 mt-auto border-t">
+                 <button onclick="showScreen('login-screen')" class="text-xs text-gray-400 hover:text-gray-600 font-medium mb-1">Acesso Administrativo</button>
+                 <p class="text-[10px] text-gray-300">Desenvolvido por Thiego Pereira</p>
             </div>
         </div>
-    </div>
-    
-    <div id="custom-confirm-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 h-full w-full z-50 flex items-center justify-center">
-        <div class="relative mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div class="mt-3 text-center">
-                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full theme-bg"><i class="fas fa-exclamation-triangle fa-lg text-white"></i></div>
-                <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">Confirmar Ação</h3>
-                <div class="mt-2 px-7 py-3"><p id="custom-confirm-message" class="text-sm text-gray-500"></p></div>
-                <div class="items-center px-4 py-3">
-                    <button id="confirm-ok-btn" class="px-4 py-2 theme-bg text-white text-base font-medium rounded-md w-24 shadow-sm hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 theme-ring">OK</button>
-                    <button id="confirm-cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-700 text-base font-medium rounded-md w-24 shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2">Cancelar</button>
+
+        <!-- TELA CONFIRMAÇÃO (MODAL) -->
+        <div id="confirmation-screen" class="hidden fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4 fade-in">
+            <div class="bg-white w-full max-w-sm rounded-2xl p-8 shadow-2xl text-center relative">
+                <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6 text-green-500 text-4xl shadow-sm mx-auto"><i class="fas fa-check"></i></div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Sucesso!</h2>
+                <div class="bg-gray-50 p-6 rounded-xl border border-gray-100 w-full mb-6 shadow-sm">
+                    <p id="confirm-name" class="font-bold text-lg text-slate-800"></p>
+                    <div class="flex justify-center items-center gap-4 mt-3 text-sm text-gray-600">
+                        <span class="flex items-center"><i class="far fa-calendar-alt mr-2"></i> <span id="confirm-date"></span></span>
+                        <span class="flex items-center"><i class="far fa-clock mr-2"></i> <span id="confirm-time"></span></span>
+                    </div>
+                </div>
+                <p class="text-gray-500 text-sm mb-8">Tire um print desta tela como comprovante.</p>
+                <button onclick="resetAndShowForm()" class="w-full px-8 py-3 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 transition">Novo Agendamento</button>
+            </div>
+        </div>
+
+        <!-- MODAL HISTÓRICO -->
+        <div id="history-modal" class="hidden fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4">
+            <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl flex flex-col fade-in h-[80vh] relative">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-gray-800">Meus Agendamentos</h3>
+                    <button onclick="closeHistoryModal()" class="text-gray-400 hover:text-red-500 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="flex gap-2 mb-4">
+                    <input type="tel" id="history-phone" placeholder="Seu telefone" class="flex-1 px-4 py-2 border rounded-lg focus:outline-none theme-ring" oninput="formatPhone(this)">
+                    <button onclick="fetchClientHistory()" class="text-white px-4 rounded-lg theme-bg"><i class="fas fa-search"></i></button>
+                </div>
+                <div id="history-list" class="flex-1 overflow-y-auto space-y-3 pr-1">
+                    <p class="text-center text-gray-400 text-sm mt-10">Busque pelo seu número.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TELA LOGIN ADMIN -->
+        <div id="login-screen" class="hidden flex flex-col items-center justify-center min-h-screen bg-white p-6 fade-in">
+             <div class="w-full max-w-xs space-y-6">
+                 <div class="text-center">
+                     <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-800"><i class="fas fa-lock fa-2x"></i></div>
+                     <h2 class="text-2xl font-bold text-gray-800">Painel Admin</h2>
+                 </div>
+                 <form id="login-form" class="space-y-4">
+                     <input type="text" id="username" placeholder="Usuário" class="w-full px-4 py-3 bg-gray-50 border rounded-lg focus:outline-none theme-ring">
+                     <input type="password" id="password" placeholder="Senha" class="w-full px-4 py-3 bg-gray-50 border rounded-lg focus:outline-none theme-ring">
+                     <button type="submit" id="login-btn" class="w-full py-3 text-white font-bold rounded-lg shadow transition flex items-center justify-center theme-bg hover:opacity-90">Entrar</button>
+                 </form>
+                 <button onclick="showScreen('form-screen')" class="w-full text-center text-sm text-gray-500">Voltar</button>
+                 <p id="login-error" class="text-center text-red-500 text-sm hidden"></p>
+             </div>
+        </div>
+
+        <!-- PAINEL ADMIN -->
+        <div id="admin-panel-screen" class="hidden bg-gray-50 min-h-screen flex flex-col">
+            <div class="bg-white shadow px-4 py-3 flex justify-between items-center sticky top-0 z-20">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold theme-bg">A</div>
+                    <h1 class="font-bold text-gray-800">Painel</h1>
+                </div>
+                <button id="logout-btn" class="text-red-500 text-sm font-medium"><i class="fas fa-sign-out-alt"></i> Sair</button>
+            </div>
+            <div class="bg-white border-b flex justify-around sticky top-14 z-10 text-sm">
+                <button onclick="switchAdminTab('dashboard')" id="tab-dashboard" class="flex-1 py-3 text-center admin-tab-active transition">Dashboard</button>
+                <button onclick="switchAdminTab('blocks')" id="tab-blocks" class="flex-1 py-3 text-center admin-tab-inactive transition">Bloqueios</button>
+                <button onclick="switchAdminTab('settings')" id="tab-settings" class="flex-1 py-3 text-center admin-tab-inactive transition">Config</button>
+            </div>
+            <div class="flex-grow p-4 overflow-y-auto pb-20">
+                <div id="content-dashboard" class="space-y-4 fade-in">
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+                        <button onclick="changePeriod(-1)" class="nav-btn w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition"><i class="fas fa-chevron-left"></i></button>
+                        <div class="text-center">
+                            <p class="text-xs text-gray-400 font-bold uppercase tracking-wide">Período</p>
+                            <p id="current-period-display" class="font-bold text-lg text-slate-800">Carregando...</p>
+                        </div>
+                        <button onclick="changePeriod(1)" class="nav-btn w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+                        <div><span class="text-xs text-gray-400 uppercase font-bold">Total Agendamentos</span><h3 id="dash-total" class="text-3xl font-bold text-slate-800 mt-1">-</h3></div>
+                        <div class="text-right"><span id="dash-period-label" class="text-[10px] text-green-500 bg-green-50 px-2 py-1 rounded-full font-bold">Hoje</span></div>
+                    </div>
+                    <div class="bg-white p-2 rounded-lg shadow-sm border border-gray-100 flex justify-between">
+                        <button onclick="setPeriodType('daily')" class="flex-1 py-2 text-xs font-bold rounded hover:bg-gray-100 transition period-btn theme-bg text-white" data-type="daily">DIA</button>
+                        <button onclick="setPeriodType('weekly')" class="flex-1 py-2 text-xs font-bold rounded hover:bg-gray-100 transition period-btn" data-type="weekly">SEMANA</button>
+                        <button onclick="setPeriodType('monthly')" class="flex-1 py-2 text-xs font-bold rounded hover:bg-gray-100 transition period-btn" data-type="monthly">MÊS</button>
+                    </div>
+                    <div id="chart-wrapper" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hidden">
+                        <h4 class="text-xs font-bold text-gray-400 mb-2 uppercase">Evolução</h4>
+                        <div class="h-48"><canvas id="adminChart"></canvas></div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="px-4 py-3 border-b bg-gray-50 flex justify-between items-center">
+                            <h3 class="font-bold text-gray-700 text-sm">Lista</h3>
+                            <button onclick="preparePrint()" class="text-xs text-white px-3 py-1 rounded theme-bg hover:opacity-90"><i class="fas fa-print mr-1"></i> Imprimir Relatório</button>
+                        </div>
+                        <div id="dashboard-list" class="divide-y divide-gray-100 max-h-96 overflow-y-auto"><p class="text-center text-gray-400 text-sm py-8">Carregando...</p></div>
+                    </div>
+                </div>
+                <div id="content-blocks" class="hidden space-y-4 fade-in">
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                        <h3 class="font-bold text-gray-800 mb-3 text-sm">Novo Bloqueio</h3>
+                        <form id="block-form" class="space-y-3">
+                            <input type="date" id="block-date" class="w-full px-3 py-2 border rounded-lg bg-gray-50 outline-none focus:ring-2 focus:ring-slate-200 theme-ring" required>
+                            <input type="time" id="block-time" class="w-full px-3 py-2 border rounded-lg bg-gray-50 outline-none focus:ring-2 focus:ring-slate-200 theme-ring">
+                            <p class="text-[10px] text-gray-400">* Deixe a hora vazia para bloquear o dia todo.</p>
+                            <button type="submit" class="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg font-bold text-sm">Bloquear</button>
+                        </form>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+                        <div class="px-4 py-3 border-b bg-gray-50"><h3 class="font-bold text-gray-700 text-sm">Bloqueios Ativos</h3></div>
+                        <div id="blocks-list" class="divide-y divide-gray-100 max-h-64 overflow-y-auto p-2"></div>
+                    </div>
+                </div>
+                <div id="content-settings" class="hidden space-y-4 fade-in">
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                        <form id="settings-form" class="space-y-4"></form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="custom-alert-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 h-full w-full z-50 flex items-center justify-center">
-        <div class="relative mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div class="mt-3 text-center">
-                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full theme-bg"><i class="fas fa-info-circle fa-lg text-white"></i></div>
-                <h3 class="text-lg leading-6 font-medium text-gray-900 mt-2">Aviso</h3>
-                <div class="mt-2 px-7 py-3"><p id="custom-alert-message" class="text-sm text-gray-500"></p></div>
-                <div class="items-center px-4 py-3">
-                    <button id="alert-ok-btn" class="px-4 py-2 theme-bg text-white text-base font-medium rounded-md w-24 shadow-sm hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 theme-ring">OK</button>
-                </div>
-            </div>
+    <a id="float-support-btn" href="#" target="_blank" class="hidden fixed bottom-4 right-4 bg-green-500 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition z-50 animate-bounce"><i class="fab fa-whatsapp fa-2x"></i></a>
+
+    <div id="printable-area" class="hidden">
+        <div class="text-center border-b pb-4 mb-4">
+            <h1 id="print-header-title" class="text-2xl font-bold text-gray-800">Relatório</h1>
+            <p id="print-header-subtitle" class="text-sm text-gray-500"></p>
         </div>
+        <table class="w-full text-sm text-left text-gray-500">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50"><tr><th class="px-2 py-2">Data/Hora</th><th class="px-2 py-2">Nome</th><th class="px-2 py-2">Telefone</th><th class="px-2 py-2">Status</th></tr></thead>
+            <tbody id="print-table-body"></tbody>
+        </table>
+        <div class="mt-8 text-right text-xs text-gray-400 border-t pt-2">Gerado automaticamente pelo sistema.</div>
     </div>
-
-    <div id="edit-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 h-full w-full z-50 flex items-center justify-center">
-        <div class="relative mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
-            <h3 class="text-xl text-center font-medium text-gray-900 mb-4">Editar Agendamento</h3>
-            <div class="text-gray-700">
-                <p class="mb-4"><strong>Cliente:</strong> <span id="edit-modal-name"></span></p>
-                <input type="hidden" id="edit-modal-appointment-id">
-                <div class="mb-4">
-                    <label for="edit-modal-date" class="block text-gray-600 mb-1">Nova Data</label>
-                    <input type="date" id="edit-modal-date" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 theme-ring">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-gray-600 mb-2">Novos Horários Disponíveis</label>
-                    <div id="edit-modal-time-slots" class="grid grid-cols-3 sm:grid-cols-4 gap-2"></div>
-                </div>
-            </div>
-            <div class="flex justify-end items-center px-4 py-3 gap-2">
-                <button id="edit-modal-cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-700 text-base font-medium rounded-md shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2">Cancelar</button>
-                <button id="edit-modal-save-btn" class="px-4 py-2 theme-bg text-white text-base font-medium rounded-md shadow-sm hover:opacity-90 focus:outline-none focus:ring-2 theme-ring">Salvar Alterações</button>
-            </div>
-        </div>
-    </div>
-
-
-    <footer class="text-center p-4">
-        <button id="admin-link" class="text-sm text-gray-500 hover:theme-text font-semibold py-1 px-2 rounded-lg transition-colors">Painel ADM</button>
-        <p class="text-xs text-gray-500 mt-1">Desenvolvido por Thiego Pereira</p>
-    </footer>
 
     <script>
-        // --- CONFIGURAÇÃO DA API ---
-        const API_URL = "https://script.google.com/macros/s/AKfycbyxVZsp37um5_eyZkrpMaXNnjof3NGgWMo1eIsBoTVQ8_lE39IaBzgmI836zUfVy5ZrGA/exec";
-
-        // --- VARIÁVEIS GLOBAIS ---
-        let appSettings = {}, selectedTime = null, isLoading = false, appointmentsChart = null, modalConfirmCallback = null;
-        let editAppointmentData = { id: null, originalTime: null, selectedTime: null };
-        let lastDashboardData = null;
-        let lastReportType = 'daily';
-
+        const API_URL = "https://script.google.com/macros/s/AKfycbyxVZsp37um5_eyZkrpMaXNnjof3NGgWMo1eIsBoTVQ8_lE39IaBzgmI836zUfVy5ZrGA/exec"; 
         
-        // ================= ALTERAÇÕES PARA PWA (INÍCIO) ================= //
-        // --- REGISTRO DO SERVICE WORKER ---
-        if ('serviceWorker' in navigator) {
-          window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js')
-              .then(registration => {
-                console.log('Service Worker registrado com sucesso:', registration);
-              })
-              .catch(error => {
-                console.log('Falha ao registrar o Service Worker:', error);
-              });
-          });
-        }
-        // ================= ALTERAÇÕES PARA PWA (FIM) =================== //
+        let appSettings = {}, selectedTime = null, adminChart = null, currentDashboardData = null;
+        let currentPeriodType = 'daily';
+        let currentDateOffset = new Date();
+        let isDashboardLoading = false; 
+        let currentRequestDate = null; 
 
-
-        // --- NOVA FUNÇÃO PARA CHAMAR A API ---
         async function callApi(action, params = {}) {
             try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action, params }),
-                    redirect: "follow"
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Erro de rede: ${response.statusText}`);
-                }
-                
-                const data = await response.json();
-
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-                
+                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action, params }) });
+                const data = await res.json();
+                if(data.error) throw new Error(data.error);
                 return data;
-
-            } catch (error) {
-                console.error(`Erro ao chamar a API para a ação "${action}":`, error);
-                showError(error);
-                throw error;
-            }
+            } catch (e) { console.error(e); return { error: e.message }; }
         }
-        
-        // --- FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO ---
-        document.addEventListener('DOMContentLoaded', initializeApp);
 
-        async function initializeApp() {
-            try {
-                const settings = await callApi('getAppSettings');
-                appSettings = settings;
+        document.addEventListener('DOMContentLoaded', async () => {
+            const settings = await callApi('getAppSettings');
+            appSettings = settings;
+            applySettings(settings);
+            if(settings.supportNumber) {
+                const btn = document.getElementById('float-support-btn');
+                btn.href = `https://wa.me/55${settings.supportNumber.replace(/\D/g,'')}`;
+                btn.classList.remove('hidden');
+            }
+            document.getElementById('loading-screen').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+            showScreen('form-screen');
+            setupEvents();
+        });
 
-                applyTheme(appSettings.themeColor);
-                setupFormUI(appSettings);
-                setupEndedUI(appSettings);
-                // A NOVA FUNÇÃO PRECISA SER CHAMADA AQUI TAMBÉM
-                setupLicenseExpiredUI(appSettings);
-                
-                // ================= LÓGICA DE EXIBIÇÃO DE TELA ATUALIZADA =================
-                if (appSettings.isLicenseExpired) {
-                    // 1. A verificação mais importante: a licença expirou?
-                    showScreen('license-expired-screen'); // Mostra a tela de licença vencida
-                } else if (appSettings.isSchedulingEnded) {
-                    // 2. Se a licença estiver OK, verifica se os agendamentos encerraram
-                    showScreen('ended-screen');
+        function applySettings(s) {
+            if(s.appName) {
+                document.getElementById('app-name').textContent = s.appName;
+                document.getElementById('print-header-title').textContent = "Relatório - " + s.appName;
+            }
+            if(s.themeColor) document.documentElement.style.setProperty('--theme-color', s.themeColor);
+            if(s.appLogoUrl) document.getElementById('app-logo').src = s.appLogoUrl;
+            if(s.appCoverUrl) document.getElementById('cover-photo').style.backgroundImage = `url('${s.appCoverUrl}')`;
+            if(s.customerNotice) {
+                document.getElementById('customer-notice-area').classList.remove('hidden');
+                document.getElementById('customer-notice-text').textContent = s.customerNotice;
+            }
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('bookingDate').min = today;
+            document.getElementById('block-date').min = today;
+        }
+
+        async function fetchAvailableSlots() {
+            const dateStr = document.getElementById('bookingDate').value;
+            const slotsDiv = document.getElementById('time-slots');
+            const container = document.getElementById('slots-container');
+            if(!dateStr) return;
+            
+            const todayStr = new Date().toLocaleDateString('pt-BR', {year:'numeric', month:'2-digit', day:'2-digit'}).split('/').reverse().join('-');
+            if (dateStr < todayStr) {
+                slotsDiv.innerHTML = '<p class="col-span-4 text-center text-red-500 text-xs py-2 bg-red-50 rounded font-bold">Data Inválida (Passado)</p>';
+                container.classList.remove('hidden');
+                return; 
+            }
+
+            container.classList.remove('hidden');
+            slotsDiv.innerHTML = '<div class="col-span-4 text-center"><div class="loader mx-auto"></div></div>';
+            
+            currentRequestDate = dateStr;
+            const slots = await callApi('getAvailableSlots', { dateString: dateStr });
+            if (dateStr !== currentRequestDate) return; 
+            
+            if (slots.length === 0) slotsDiv.innerHTML = '<p class="col-span-4 text-center text-xs text-gray-400 py-2">Sem horários disponíveis.</p>';
+            else slotsDiv.innerHTML = slots.map(t => `<button type="button" onclick="selectTime(this, '${t}')" class="slot-btn py-2 bg-gray-100 rounded text-sm font-bold text-gray-700 transition w-full">${t}</button>`).join('');
+        }
+
+        function setPeriodType(type) {
+            if (isDashboardLoading) return;
+            currentPeriodType = type;
+            currentDateOffset = new Date(); 
+            loadDashboard();
+        }
+
+        function changePeriod(direction) {
+            if (isDashboardLoading) return;
+            if (currentPeriodType === 'daily') currentDateOffset.setDate(currentDateOffset.getDate() + direction);
+            else if (currentPeriodType === 'weekly') currentDateOffset.setDate(currentDateOffset.getDate() + (direction * 7));
+            else if (currentPeriodType === 'monthly') currentDateOffset.setMonth(currentDateOffset.getMonth() + direction);
+            loadDashboard();
+        }
+
+        async function loadDashboard() {
+            isDashboardLoading = true;
+            document.querySelectorAll('.nav-btn, .period-btn').forEach(btn => btn.classList.add('opacity-50', 'cursor-not-allowed'));
+            document.querySelectorAll('.period-btn').forEach(b => {
+                if(b.dataset.type === currentPeriodType) {
+                    b.classList.remove('bg-gray-100'); 
+                    b.classList.add('theme-bg', 'text-white');
                 } else {
-                    // 3. Se tudo estiver OK, mostra o formulário de agendamento
-                    showScreen('form-screen');
+                    b.classList.remove('theme-bg', 'text-white');
+                    b.classList.add('bg-gray-100');
                 }
-                // ================= FIM DA LÓGICA ATUALIZADA ==============================
+            });
 
-                addEventListeners();
-                toggleInfoSupportButton();
-            } catch (error) {
-                const loadingScreen = document.getElementById('loading-screen');
-                loadingScreen.innerHTML = `<p class="text-red-500 text-center">Não foi possível carregar as configurações do aplicativo.<br>Por favor, tente novamente mais tarde.</p>`;
-            }
+            const dateStr = currentDateOffset.toISOString().split('T')[0];
+            const listDiv = document.getElementById('dashboard-list');
+            listDiv.innerHTML = '<div class="flex justify-center py-8"><div class="loader"></div></div>';
+            
+            try {
+                const data = await callApi('getAdminDashboardData', { period: currentPeriodType, dateReference: dateStr });
+                currentDashboardData = data; 
+                document.getElementById('dash-total').textContent = data.count || 0;
+                if(data.periodInfo) {
+                    if(currentPeriodType === 'daily') document.getElementById('current-period-display').textContent = data.periodInfo.start;
+                    else document.getElementById('current-period-display').textContent = `${data.periodInfo.start} - ${data.periodInfo.end}`;
+                }
+
+                if (!data.appointments || data.appointments.length === 0) listDiv.innerHTML = '<p class="text-center text-gray-400 py-8 text-sm">Nenhum agendamento.</p>';
+                else {
+                    listDiv.innerHTML = data.appointments.map(a => {
+                        const appData = JSON.stringify(a).replace(/"/g, '&quot;');
+                        return `
+                        <div class="px-4 py-3 flex justify-between items-center hover:bg-gray-50 border-b border-gray-50">
+                            <div><p class="font-bold text-slate-800 text-sm">${a.date} - ${a.time}</p><p class="text-xs text-gray-500 uppercase">${a.name}</p></div>
+                            <div class="flex gap-2">
+                                <button onclick='sendReminder(${appData})' class="w-8 h-8 rounded bg-green-100 text-green-600 flex items-center justify-center text-xs" title="Enviar WhatsApp"><i class="fab fa-whatsapp"></i></button>
+                                <button onclick="deleteAppt('${a.id}')" class="w-8 h-8 rounded bg-red-100 text-red-600 flex items-center justify-center text-xs"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>`;
+                    }).join('');
+                }
+
+                const chartWrapper = document.getElementById('chart-wrapper');
+                if (currentPeriodType === 'daily') chartWrapper.classList.add('hidden');
+                else { chartWrapper.classList.remove('hidden'); renderChart(data.chart.labels, data.chart.data); }
+            } catch (e) { listDiv.innerHTML = '<p class="text-red-500 text-center">Erro ao carregar dados.</p>'; }
+            finally { isDashboardLoading = false; document.querySelectorAll('.nav-btn, .period-btn').forEach(btn => btn.classList.remove('opacity-50', 'cursor-not-allowed')); }
         }
 
-        // --- AQUI COMEÇA TODO O SEU CÓDIGO JAVASCRIPT ORIGINAL, COM A ADIÇÃO DA NOVA FUNÇÃO ---
-        function applyTheme(color) { document.documentElement.style.setProperty('--theme-color', color); }
-        function setupFormUI(settings) { document.getElementById('app-name').textContent = settings.appName || 'Sistema de Marcação'; document.getElementById('app-logo').src = settings.appLogoUrl || 'https://placehold.co/100x100/cccccc/FFFFFF?text=Logo'; document.getElementById('app-address').textContent = settings.appAddress || ''; document.getElementById('app-phone').textContent = settings.appPhone || ''; if (settings.appCoverUrl) { document.getElementById('cover-photo').style.backgroundImage = `url('${settings.appCoverUrl}')`; } const dateInput = document.getElementById('bookingDate'); const today = new Date(); today.setHours(0, 0, 0, 0); dateInput.min = today.toISOString().split('T')[0]; let finalMaxDate = null; if (settings.dateLimit && !isNaN(Number(settings.dateLimit))) { const maxDateFromLimit = new Date(today); maxDateFromLimit.setDate(today.getDate() + Number(settings.dateLimit)); finalMaxDate = maxDateFromLimit; } if (settings.schedulingEndDate && settings.schedulingEndDate.trim() !== "") { try { const parts = settings.schedulingEndDate.split('/'); if (parts.length === 3) { const endDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])); if (!isNaN(endDate.getTime())) { if (finalMaxDate === null || endDate < finalMaxDate) { finalMaxDate = endDate; } } } } catch (e) { console.error("Data de Encerramento inválida:", settings.schedulingEndDate); } } if (finalMaxDate) { dateInput.max = finalMaxDate.toISOString().split('T')[0]; } }
-        function setupEndedUI(settings) { document.getElementById('ended-app-name').textContent = settings.appName || 'Sistema de Marcação'; document.getElementById('ended-logo').src = settings.appLogoUrl || 'https://placehold.co/100x100/cccccc/FFFFFF?text=Logo'; document.getElementById('ended-message').textContent = settings.schedulingEndedMsg || 'O período de marcações está encerrado.'; if (settings.appCoverUrl) { document.getElementById('ended-cover-photo').style.backgroundImage = `url('${settings.appCoverUrl}')`; } }
+        function sendReminder(app) {
+            let template = appSettings.whatsappMessageTemplate || "Olá [NOME], confirmamos seu agendamento para [DATA] às [HORA].";
+            let msg = template.replace(/\[NOME\]/g, app.name).replace(/\[DATA\]/g, app.date).replace(/\[HORA\]/g, app.time);
+            let phone = "55" + app.phone.replace(/\D/g, '');
+            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+
+        async function loadSettingsForm() {
+            const form = document.getElementById('settings-form');
+            const fields = [
+                {k: 'appName', l: 'Nome da App'}, {k: 'appLogoUrl', l: 'URL Logo'}, {k: 'appCoverUrl', l: 'URL Capa'}, {k: 'supportNumber', l: 'WhatsApp Suporte'},
+                {k: 'startTime', l: 'Abertura', t: 'time'}, {k: 'endTime', l: 'Fechamento', t: 'time'},
+                {k: 'interval', l: 'Intervalo (minutos)', t: 'number'}, {k: 'dateLimit', l: 'Dias Futuros', t: 'number'},
+                {k: 'themeColor', l: 'Cor Tema', t: 'color'}, {k: 'customerNotice', l: 'Aviso Tela Inicial', t: 'textarea'},
+                {k: 'whatsappMessageTemplate', l: 'Msg Lembrete (Use [NOME], [DATA], [HORA])', t: 'textarea'},
+                {k: 'adminUser', l: 'Admin User'}, {k: 'adminPass', l: 'Admin Pass', t: 'password'}
+            ];
+            let html = '';
+            fields.forEach(f => {
+                const val = appSettings[f.k] || '';
+                if(f.t === 'textarea') html += `<div><label class="text-xs font-bold text-gray-500">${f.l}</label><textarea name="${f.k}" class="w-full border rounded p-2 text-sm bg-gray-50 h-20 theme-ring">${val}</textarea></div>`;
+                else if(f.t === 'color') html += `<div><label class="text-xs font-bold text-gray-500">${f.l}</label><div class="flex gap-2"><input type="color" name="${f.k}" value="${val}" class="h-9 w-12 rounded"><input type="text" value="${val}" class="flex-1 border rounded p-2 text-sm bg-gray-50 theme-ring" readonly></div></div>`;
+                else html += `<div><label class="text-xs font-bold text-gray-500">${f.l}</label><input type="${f.t||'text'}" name="${f.k}" value="${val}" class="w-full border rounded p-2 text-sm bg-gray-50 theme-ring"></div>`;
+            });
+            const blockedDays = (appSettings.blockedWeekdays || '').split(',').map(d => d.trim());
+            const days = ['D','S','T','Q','Q','S','S']; 
+            html += `<div class="mt-4 border-t pt-4"><label class="text-xs font-bold text-gray-500 block mb-2">Dias Bloqueados (Folgas)</label><div class="flex justify-between gap-1">${days.map((d, i) => `<button type="button" class="w-10 h-10 rounded-full font-bold text-sm transition weekday-btn ${blockedDays.includes(String(i)) ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-600'}" onclick="toggleWeekday(this, ${i})">${d}</button>`).join('')}</div><input type="hidden" name="blockedWeekdays" id="blockedWeekdaysInput" value="${appSettings.blockedWeekdays||''}"></div>`;
+            html += '<button type="submit" class="w-full text-white py-3 rounded font-bold text-sm mt-6 theme-bg hover:opacity-90">Salvar Tudo</button>';
+            form.innerHTML = html;
+            form.onsubmit = async (ev) => {
+                ev.preventDefault();
+                const btn = form.querySelector('button[type="submit"]');
+                btn.innerHTML = 'Salvando...'; btn.disabled = true;
+                const formData = new FormData(form);
+                const newS = {};
+                formData.forEach((v,k) => newS[k] = v);
+                await callApi('updateAppSettings', { newSettings: newS });
+                alert("Salvo!");
+                location.reload();
+            };
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('username').value, p = document.getElementById('password').value;
+            const btn = document.getElementById('login-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<div class="btn-loader mx-auto"></div>';
+            btn.disabled = true;
+            callApi('checkAdminLogin', {credentials:{username:u, password:p}}).then(res => {
+                if(res.success) { showScreen('admin-panel-screen'); currentPeriodType = 'monthly'; loadDashboard(); } 
+                else { alert(res.message); }
+                btn.innerHTML = originalText; btn.disabled = false;
+            });
+        }
+
+        function selectTime(btn, time) {
+            // CORREÇÃO: Remove classes genéricas e força a theme-bg
+            document.querySelectorAll('.slot-btn').forEach(b => { 
+                b.classList.remove('theme-bg', 'text-white'); 
+                b.classList.add('bg-gray-100', 'text-gray-700'); 
+            });
+            btn.classList.remove('bg-gray-100', 'text-gray-700'); 
+            btn.classList.add('theme-bg', 'text-white'); 
+            selectedTime = time;
+            
+            const submitBtn = document.getElementById('submit-booking-btn');
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('bg-gray-400');
+            submitBtn.classList.add('theme-bg', 'hover:opacity-90');
+        }
+
+        async function submitBooking(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submit-booking-btn');
+            btn.innerHTML = 'Processando...'; btn.disabled = true;
+            const data = { fullName: document.getElementById('fullName').value, phone: document.getElementById('phone').value, date: document.getElementById('bookingDate').value, time: selectedTime };
+            const res = await callApi('saveAppointment', { bookingData: data });
+            if (res.success) {
+                document.getElementById('confirm-name').textContent = data.fullName;
+                const d = data.date.split('-');
+                document.getElementById('confirm-date').textContent = `${d[2]}/${d[1]}/${d[0]}`;
+                document.getElementById('confirm-time').textContent = data.time;
+                document.getElementById('confirmation-screen').classList.remove('hidden');
+            } else { alert(res.message); btn.innerHTML = 'Confirmar Agendamento'; btn.disabled = false; }
+        }
+
+        function renderChart(labels, values) {
+            const ctx = document.getElementById('adminChart').getContext('2d');
+            if(adminChart) adminChart.destroy();
+            adminChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: labels, datasets: [{ label: 'Agendamentos', data: values, borderColor: getComputedStyle(document.documentElement).getPropertyValue('--theme-color'), backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--theme-color') + '20', fill: true, tension: 0.4 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+            });
+        }
+
+        function preparePrint() {
+            if (!currentDashboardData || !currentDashboardData.appointments) return alert("Nada para imprimir.");
+            const tbody = document.getElementById('print-table-body');
+            document.getElementById('print-header-subtitle').textContent = currentDashboardData.periodInfo ? `Período: ${currentDashboardData.periodInfo.start} a ${currentDashboardData.periodInfo.end}` : "Relatório";
+            tbody.innerHTML = currentDashboardData.appointments.map(a => `<tr class="bg-white border-b"><td class="px-2 py-2 font-medium text-gray-900">${a.date} ${a.time}</td><td class="px-2 py-2">${a.name}</td><td class="px-2 py-2">${a.phone}</td><td class="px-2 py-2"><span class="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded">Confirmado</span></td></tr>`).join('');
+            window.print();
+        }
+
+        async function loadBlocks() {
+            const list = document.getElementById('blocks-list');
+            list.innerHTML = '<div class="flex justify-center p-4"><div class="loader"></div></div>';
+            const blocks = await callApi('getBlockedSlots');
+            if(!blocks || blocks.length === 0) list.innerHTML = '<p class="text-center text-gray-400 text-xs p-4">Sem bloqueios ativos.</p>';
+            else list.innerHTML = blocks.map(b => `<div class="px-4 py-3 flex justify-between items-center text-sm hover:bg-gray-50"><span class="font-bold text-gray-700">${b.date} <span class="font-normal text-gray-400 text-xs ml-2">${b.time || 'Dia Inteiro'}</span></span><button onclick="removeBlock(${b.row})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button></div>`).join('');
+        }
+
+        async function addBlockSubmit(e) {
+            e.preventDefault();
+            const date = document.getElementById('block-date').value;
+            const time = document.getElementById('block-time').value;
+            await callApi('addBlock', { blockData: { date, time } });
+            document.getElementById('block-form').reset(); loadBlocks();
+        }
+
+        async function removeBlock(row) { if(!confirm("Remover?")) return; await callApi('deleteBlock', { rowNumber: row }); loadBlocks(); }
+        async function deleteAppt(id) { if(!confirm("Excluir?")) return; await callApi('deleteAppointment', { appointmentId: id }); loadDashboard(); }
+
+        function showScreen(id) {
+            ['form-screen', 'confirmation-screen', 'login-screen', 'admin-panel-screen'].forEach(s => document.getElementById(s).classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+            window.scrollTo(0,0);
+        }
         
-        // ================= NOVA FUNÇÃO PARA A TELA DE LICENÇA (INÍCIO) ===================
-        function setupLicenseExpiredUI(settings) {
-            document.getElementById('license-app-name').textContent = settings.appName || 'Sistema de Marcação';
-            document.getElementById('license-logo').src = settings.appLogoUrl || 'https://placehold.co/100x100/cccccc/FFFFFF?text=Logo';
-            document.getElementById('license-expired-message').textContent = settings.licenseExpiredMsg || 'Sua licença para usar este aplicativo expirou. Entre em contato com o suporte.';
-            if (settings.appCoverUrl) {
-                document.getElementById('license-cover-photo').style.backgroundImage = `url('${settings.appCoverUrl}')`;
-            }
+        function resetAndShowForm() {
+            document.getElementById('booking-form').reset();
+            selectedTime = null;
+            document.getElementById('slots-container').classList.add('hidden');
+            const btn = document.getElementById('submit-booking-btn');
+            btn.disabled = true;
+            btn.innerHTML = 'Confirmar Agendamento'; 
+            btn.classList.remove('theme-bg', 'hover:opacity-90');
+            btn.classList.add('bg-gray-400');
+            
+            document.getElementById('form-errors').classList.add('hidden');
+            document.getElementById('confirmation-screen').classList.add('hidden');
+            showScreen('form-screen');
         }
-        // ================= NOVA FUNÇÃO PARA A TELA DE LICENÇA (FIM) =====================
+        
+        function switchAdminTab(tab) {
+            ['dashboard', 'blocks', 'settings'].forEach(t => { document.getElementById(`content-${t}`).classList.add('hidden'); document.getElementById(`tab-${t}`).classList.replace('admin-tab-active', 'admin-tab-inactive'); });
+            document.getElementById(`content-${tab}`).classList.remove('hidden'); document.getElementById(`tab-${tab}`).classList.replace('admin-tab-inactive', 'admin-tab-active');
+            if(tab === 'dashboard') loadDashboard(); if(tab === 'blocks') loadBlocks(); if(tab === 'settings') loadSettingsForm();
+        }
 
-        function showScreen(screenId) { document.querySelectorAll('#app > div').forEach(screen => screen.classList.add('hidden')); const screenToShow = document.getElementById(screenId); if (screenToShow) screenToShow.classList.remove('hidden'); window.scrollTo(0, 0); }
-        function resetAndShowForm() { document.getElementById('booking-form').reset(); selectedTime = null; updateSubmitButtonState(); document.getElementById('time-slots').innerHTML = '<p class="col-span-full text-center text-gray-500 p-4 bg-gray-50 rounded-lg">Selecione uma data.</p>'; showScreen('form-screen'); }
-        async function fetchAvailableSlots() { const dateInput = document.getElementById('bookingDate'); const timeSlotsDiv = document.getElementById('time-slots'); const selectedDateStr = dateInput.value; selectedTime = null; updateSubmitButtonState(); showFormError(''); if (!selectedDateStr) { timeSlotsDiv.innerHTML = '<p class="col-span-full text-center text-gray-500 p-4 bg-gray-50 rounded-lg">Selecione uma data.</p>'; return; } const selectedDate = new Date(selectedDateStr + "T00:00:00-03:00"); const minDate = new Date(dateInput.min + "T00:00:00-03:00"); const maxDate = dateInput.max ? new Date(dateInput.max + "T00:00:00-03:00") : null; if (selectedDate < minDate || (maxDate && selectedDate > maxDate)) { showFormError("A data selecionada não é permitida. Por favor, escolha outra."); timeSlotsDiv.innerHTML = '<p class="col-span-full text-center text-red-500 p-4 bg-red-50 rounded-lg">Data inválida.</p>'; return; } timeSlotsDiv.innerHTML = `<div class="col-span-full grid grid-cols-3 sm:grid-cols-4 gap-2 animate-pulse">${Array(8).fill('<div class="h-9 bg-gray-200 rounded-lg"></div>').join('')}</div>`; try { const slots = await callApi('getAvailableSlots', { dateString: selectedDateStr }); updateSlotsUI(slots); } catch (error) { timeSlotsDiv.innerHTML = '<p class="col-span-full text-center text-red-500 p-4 bg-red-50 rounded-lg">Erro ao carregar horários.</p>'; } }
-        function updateSlotsUI(slots) { const timeSlotsDiv = document.getElementById('time-slots'); if (slots && slots.length > 0) { timeSlotsDiv.innerHTML = slots.map(slot => `<button type="button" onclick="selectTime(this, '${slot}')" class="time-slot-btn w-full text-center py-2 px-1 border rounded-lg bg-gray-100 hover:theme-bg hover:text-white transition duration-200">${slot}</button>`).join(''); } else { timeSlotsDiv.innerHTML = '<p class="col-span-full text-center text-gray-500 p-4 bg-gray-100 rounded-lg">Nenhum horário disponível para este dia.</p>'; } }
-        function selectTime(element, time) { document.querySelectorAll('.time-slot-btn').forEach(btn => { btn.classList.remove('theme-bg', 'text-white'); btn.classList.add('bg-gray-100'); }); element.classList.add('theme-bg', 'text-white'); element.classList.remove('bg-gray-100'); selectedTime = time; showFormError(''); updateSubmitButtonState(); }
-        async function handleBookingSubmit(event) { event.preventDefault(); if (isLoading) return; if (!selectedTime) { showFormError('Por favor, selecione um horário.'); return; } if (document.getElementById('fullName').value.length < 3) { showFormError('Por favor, insira o seu nome completo.'); return; } if (document.getElementById('phone').value.replace(/\D/g, '').length < 10) { showFormError('Por favor, insira um telefone válido com indicativo.'); return; } const submitButton = document.getElementById('submit-booking-btn'); const originalButtonText = "Marcar Horário"; toggleLoading(true, 'submit-booking-btn', originalButtonText); const bookingData = { fullName: document.getElementById('fullName').value, phone: document.getElementById('phone').value, date: document.getElementById('bookingDate').value, time: selectedTime }; try { const response = await callApi('saveAppointment', { bookingData }); if (response.success) { const dateObj = new Date(bookingData.date + 'T12:00:00'); const formattedDate = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); document.getElementById('confirmation-details').innerHTML = `Obrigado, <strong>${bookingData.fullName}</strong>!<br>A sua marcação para <strong>${formattedDate}</strong> às <strong>${bookingData.time}</strong> foi confirmada.`; showScreen('confirmation-screen'); } else { showFormError(response.message || 'Ocorreu um erro.'); } } finally { toggleLoading(false, 'submit-booking-btn', originalButtonText); } }
-        async function handleAdminLogin(event) { event.preventDefault(); const username = document.getElementById('username').value; const password = document.getElementById('password').value; const errorDiv = document.getElementById('login-error'); const loginBtn = document.querySelector('#login-form button[type="submit"]'); const originalText = loginBtn.innerHTML; loginBtn.disabled = true; loginBtn.innerHTML = '<div class="loader mx-auto" style="width: 24px; height: 24px; border-width: 3px;"></div>'; try { const response = await callApi('checkAdminLogin', { credentials: { username, password } }); if (response.success) { errorDiv.classList.add('hidden'); showScreen('admin-panel-screen'); const todayStr = new Date().toISOString().split('T')[0]; document.getElementById('report-date').value = todayStr; const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(new Date().getDate() - 6); document.getElementById('chart-start-date').value = sevenDaysAgo.toISOString().split('T')[0]; document.getElementById('chart-end-date').value = todayStr; loadDailyDashboard(); loadChartData(); } else { errorDiv.textContent = response.message; errorDiv.classList.remove('hidden'); } } catch (error) { errorDiv.textContent = "Erro de comunicação. Tente novamente."; errorDiv.classList.remove('hidden'); } finally { loginBtn.disabled = false; loginBtn.innerHTML = originalText; } }
-        async function loadDailyDashboard() { const date = document.getElementById('report-date').value; if (!date) return; document.getElementById('dashboard-content').innerHTML = '<div class="flex justify-center p-8"><div class="loader"></div></div>'; try { const data = await callApi('getAdminDashboardData', { dateString: date }); renderAdminReport(data); } catch (error) { document.getElementById('dashboard-content').innerHTML = `<p class="text-red-500">${error.message}</p>`; } }
-        async function loadWeeklyDashboard() { const date = document.getElementById('report-date').value; if (!date) { showCustomAlert("Por favor, selecione uma data de referência."); return; } document.getElementById('dashboard-content').innerHTML = '<div class="flex justify-center p-8"><div class="loader"></div></div>'; try { const data = await callApi('getWeeklyData', { dateString: date }); renderWeeklyReport(data); } catch(error) { document.getElementById('dashboard-content').innerHTML = `<p class="text-red-500">${error.message}</p>`; } }
-        async function loadChartData() { const startDate = document.getElementById('chart-start-date').value; const endDate = document.getElementById('chart-end-date').value; if (!startDate || !endDate) return; try { const data = await callApi('getChartData', { startDateString: startDate, endDateString: endDate }); renderChart(data); } catch(error) { console.error("Erro ao carregar dados do gráfico:", error.message); } }
-        async function handleSettingsSave(event) { event.preventDefault(); const form = event.target; const newSettings = {}; const formData = new FormData(form); for (const [key, value] of formData.entries()) { newSettings[key] = value; } const saveButton = document.getElementById('save-settings-btn'); const originalText = 'Guardar Alterações'; toggleLoading(true, 'save-settings-btn', originalText); try { const response = await callApi('updateAppSettings', { newSettings }); if (response.success) { showCustomAlert('Configurações guardadas com sucesso! A página será recarregada.'); setTimeout(() => { window.location.reload(); }, 2000); } else { showCustomAlert('Erro: ' + response.message); } } finally { toggleLoading(false, 'save-settings-btn', originalText); } }
-        function confirmDeleteAppointment(appointmentId) { const onConfirm = async () => { document.body.style.cursor = 'wait'; try { const response = await callApi('deleteAppointment', { appointmentId }); showCustomAlert(response.message); if (response.success) { if (lastReportType === 'daily') { loadDailyDashboard(); } else { loadWeeklyDashboard(); } } } finally { document.body.style.cursor = 'default'; } }; showCustomConfirm("Tem a certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.", onConfirm); }
-        function formatPhone(input) { let value = input.value.replace(/\D/g, '').substring(0, 11); if (value.length > 10) value = `(${value.substring(0, 2)}) ${value.substring(2, 7)}-${value.substring(7)}`; else if (value.length > 6) value = `(${value.substring(0, 2)}) ${value.substring(2, 6)}-${value.substring(6)}`; else if (value.length > 2) value = `(${value}`; else if (value.length > 0) value = `(${value}`; input.value = value; }
-        function updateSubmitButtonState() { const btn = document.getElementById('submit-booking-btn'); const isValid = document.getElementById('fullName').value.length >= 3 && document.getElementById('phone').value.replace(/\D/g, '').length >= 10 && document.getElementById('bookingDate').value !== '' && selectedTime !== null; btn.disabled = !isValid; btn.classList.toggle('bg-gray-400', !isValid); btn.classList.toggle('cursor-not-allowed', !isValid); btn.classList.toggle('theme-bg', isValid); btn.classList.toggle('theme-hover-bg', isValid); }
-        function showFormError(message) { document.getElementById('form-errors').textContent = message; }
-        function toggleLoading(show, elementId, originalText) { const element = document.getElementById(elementId); if (!element) return; isLoading = show; if (show) { element.disabled = true; element.innerHTML = '<div class="loader mx-auto" style="width: 24px; height: 24px; border-width: 3px;"></div>'; } else { element.disabled = false; element.innerHTML = originalText; } }
-        function showError(error) { console.error('Ocorreu um erro:', error); showCustomAlert(error.message || 'Erro inesperado. Tente novamente.'); }
-        function renderWeeklyReport(data) { lastDashboardData = data; lastReportType = 'weekly'; const contentDiv = document.getElementById('dashboard-content'); let totalAppointments = Object.values(data).reduce((sum, day) => sum + day.length, 0); let reportHtml = `<div class="flex justify-between items-center mb-4"><h3 class="text-lg font-semibold">Marcações da Semana (${totalAppointments})</h3><button onclick="printReport()" class="theme-bg theme-hover-bg text-white px-4 py-2 rounded-lg text-sm"><i class="fas fa-print mr-2"></i>Imprimir</button></div>`; reportHtml += '<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">'; const weekdays = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"]; for (const dateKey in data) { const appointments = data[dateKey]; const dateObj = new Date(dateKey + 'T12:00:00'); const dayName = weekdays[dateObj.getDay()]; const formattedDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }); reportHtml += `<div class="bg-white border rounded-lg shadow-sm p-4 flex flex-col"><h4 class="font-bold theme-text mb-3 text-center border-b pb-2">${dayName} - ${formattedDate}</h4>`; if (appointments.length > 0) { reportHtml += '<div class="space-y-3 flex-grow max-h-72 overflow-y-auto pr-2">'; appointments.forEach(app => { const appData = { ...app, date: dateKey }; const appDataString = JSON.stringify(appData).replace(/"/g, '&quot;'); reportHtml += `<div class="text-sm p-2 bg-gray-50 rounded-md border"><p class="font-semibold">${app.time} - ${app.name}</p><p class="text-xs text-gray-600">${app.phone}</p><div class="mt-2 text-right space-x-1"><button onclick='sendWhatsAppMessage(${appDataString})' title="Enviar WhatsApp" class="bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-2 rounded text-xs"><i class="fab fa-whatsapp"></i></button><button onclick='openEditModal(${appDataString})' title="Editar" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-2 rounded text-xs"><i class="fas fa-edit"></i></button><button onclick="confirmDeleteAppointment('${app.id}')" title="Excluir" class="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded text-xs"><i class="fas fa-trash-alt"></i></button></div></div>`; }); reportHtml += '</div>'; } else { reportHtml += '<div class="flex-grow flex items-center justify-center"><p class="text-sm text-gray-400 p-4">Nenhum agendamento.</p></div>'; } reportHtml += '</div>'; } reportHtml += '</div>'; contentDiv.innerHTML = reportHtml; }
-        function renderAdminReport(data) { lastDashboardData = data; lastReportType = 'daily'; const contentDiv = document.getElementById('dashboard-content'); if (data.error) { contentDiv.innerHTML = `<p class="text-red-500">${data.error}</p>`; return; } let reportHtml = `<div class="flex justify-between items-center mb-2 flex-wrap gap-2"><h3 class="text-lg font-semibold">Total de Marcações: ${data.count}</h3><button onclick="printReport()" class="theme-bg theme-hover-bg text-white px-4 py-2 rounded-lg text-sm font-semibold"><i class="fas fa-print mr-2"></i>Imprimir</button></div>`; if (data.count > 0) { reportHtml += `<div class="mt-2 border rounded-lg max-h-[60vh] overflow-y-auto relative"><div class="overflow-x-auto"><table class="min-w-full bg-white"><thead class="bg-gray-100 sticky top-0 z-10"><tr><th class="py-2 px-4 border-b text-left text-sm font-semibold text-gray-600">Horário</th><th class="py-2 px-4 border-b text-left text-sm font-semibold text-gray-600">Nome</th><th class="py-2 px-4 border-b text-left text-sm font-semibold text-gray-600">Telefone</th><th class="py-2 px-4 border-b text-left text-sm font-semibold text-gray-600">Ações</th></tr></thead><tbody>`; data.appointments.forEach(app => { const appData = JSON.stringify(app).replace(/"/g, '&quot;'); reportHtml += `<tr><td class="py-2 px-4 border-b">${app.time}</td><td class="py-2 px-4 border-b">${app.name}</td><td class="py-2 px-4 border-b">${app.phone}</td><td class="py-2 px-4 border-b"><div class="flex items-center gap-2"><button onclick='sendWhatsAppMessage(${appData})' title="Enviar WhatsApp" class="w-8 h-8 flex items-center justify-center rounded bg-green-500 hover:bg-green-600 text-white transition-all duration-200"><i class="fab fa-whatsapp"></i></button><button onclick='openEditModal(${appData})' title="Editar" class="w-8 h-8 flex items-center justify-center rounded bg-blue-500 hover:bg-blue-600 text-white transition-all duration-200"><i class="fas fa-edit"></i></button><button onclick="confirmDeleteAppointment('${app.id}')" title="Excluir" class="w-8 h-8 flex items-center justify-center rounded bg-red-500 hover:bg-red-600 text-white transition-all duration-200"><i class="fas fa-trash-alt"></i></button></div></td></tr>`; }); reportHtml += `</tbody></table></div></div>`; } else { reportHtml += '<div class="text-center bg-gray-50 p-6 mt-4 rounded-lg"><p class="text-gray-500">Nenhuma marcação para esta data.</p></div>'; } contentDiv.innerHTML = reportHtml; }
-        function showCustomConfirm(message, onConfirmCallback) { document.getElementById('custom-confirm-message').textContent = message; modalConfirmCallback = onConfirmCallback; document.getElementById('custom-confirm-modal').classList.remove('hidden'); }
-        function showCustomAlert(message) { document.getElementById('custom-alert-message').textContent = message; document.getElementById('custom-alert-modal').classList.remove('hidden'); }
-        function openEditModal(app) { editAppointmentData.id = app.id; editAppointmentData.originalTime = app.time; editAppointmentData.selectedTime = app.time; document.getElementById('edit-modal-appointment-id').value = app.id; document.getElementById('edit-modal-name').textContent = app.name; const reportDate = app.date || document.getElementById('report-date').value; document.getElementById('edit-modal-date').value = reportDate; fetchAvailableSlotsForEditor(reportDate, app.time); document.getElementById('edit-modal').classList.remove('hidden'); }
-        async function fetchAvailableSlotsForEditor(date, originalTime) { document.getElementById('edit-modal-time-slots').innerHTML = '<div class="col-span-full"><div class="loader mx-auto"></div></div>'; try { const slots = await callApi('getAvailableSlots', { dateString: date }); updateEditorSlotsUI(slots, originalTime); } catch(error) { document.getElementById('edit-modal-time-slots').innerHTML = `<p class="text-red-500 col-span-full">${error.message}</p>`;} }
-        function updateEditorSlotsUI(slots, originalTime) { const timeSlotsDiv = document.getElementById('edit-modal-time-slots'); if (originalTime && !slots.includes(originalTime)) { slots.push(originalTime); slots.sort(); } if (slots && slots.length > 0) { timeSlotsDiv.innerHTML = slots.map(slot => { const isSelected = slot === editAppointmentData.selectedTime; return `<button type="button" onclick="selectEditorTime(this, '${slot}')" class="editor-time-slot-btn w-full text-center py-2 px-1 border rounded-lg ${isSelected ? 'theme-bg text-white' : 'bg-gray-100 hover:theme-bg hover:text-white'} transition duration-200">${slot}</button>`; }).join(''); } else { timeSlotsDiv.innerHTML = '<p class="col-span-full text-center text-gray-500 p-4 bg-gray-100 rounded-lg">Nenhum horário disponível.</p>'; } }
-        function selectEditorTime(element, time) { document.querySelectorAll('.editor-time-slot-btn').forEach(btn => { btn.classList.remove('theme-bg', 'text-white'); btn.classList.add('bg-gray-100'); }); element.classList.add('theme-bg', 'text-white'); element.classList.remove('bg-gray-100'); editAppointmentData.selectedTime = time; }
-        function printReport() { if (!lastDashboardData) { showCustomAlert("Não há dados de relatório para imprimir."); return; } let title = ''; let reportBodyHtml = ''; if (lastReportType === 'daily' && lastDashboardData.appointments) { const reportDate = new Date(document.getElementById('report-date').value + 'T12:00:00'); const formattedDate = reportDate.toLocaleDateString('pt-BR', { dateStyle: 'full' }); title = `Relatório de Agendamentos - ${formattedDate}`; reportBodyHtml += `<table class="print-table"><thead><tr><th>Horário</th><th>Nome</th><th>Telefone</th></tr></thead><tbody>`; if (lastDashboardData.count > 0) { lastDashboardData.appointments.forEach(app => { reportBodyHtml += `<tr><td>${app.time}</td><td>${app.name}</td><td>${app.phone}</td></tr>`; }); } else { reportBodyHtml += '<tr><td colspan="3">Nenhum agendamento para esta data.</td></tr>'; } reportBodyHtml += '</tbody></table>'; } else if (lastReportType === 'weekly') { const reportDate = new Date(document.getElementById('report-date').value + 'T12:00:00'); const firstDayOfWeek = new Date(reportDate); firstDayOfWeek.setDate(reportDate.getDate() - reportDate.getDay()); const lastDayOfWeek = new Date(firstDayOfWeek); lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6); const startDateStr = firstDayOfWeek.toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'}); const endDateStr = lastDayOfWeek.toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'}); title = `Relatório Semanal de Agendamentos (${startDateStr} a ${endDateStr})`; const weekdays = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"]; for (const dateKey in lastDashboardData) { const appointments = lastDashboardData[dateKey]; const dateObj = new Date(dateKey + 'T12:00:00'); const dayName = weekdays[dateObj.getDay()]; const formattedDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }); reportBodyHtml += `<div class="day-container"><h3>${dayName} - ${formattedDate}</h3>`; if (appointments.length > 0) { reportBodyHtml += `<table class="print-table"><thead><tr><th>Horário</th><th>Nome</th><th>Telefone</th></tr></thead><tbody>`; appointments.forEach(app => { reportBodyHtml += `<tr><td>${app.time}</td><td>${app.name}</td><td>${app.phone}</td></tr>`; }); reportBodyHtml += '</tbody></table>'; } else { reportBodyHtml += '<p>Nenhum agendamento.</p>'; } reportBodyHtml += '</div>'; } } const printHtml = `<html><head><title>${title}</title><style>body { font-family: 'Inter', sans-serif; font-size: 10pt; } h1 { font-size: 16pt; margin-bottom: 5px; } h2 { font-size: 14pt; margin-bottom: 20px; font-weight: normal; border-bottom: 1px solid #ccc; padding-bottom: 10px; } h3 { font-size: 12pt; background-color: #f2f2f2; padding: 8px; margin-top: 20px; margin-bottom: 10px; border-radius: 4px; } .print-table { width: 100%; border-collapse: collapse; } .print-table th, .print-table td { border: 1px solid #ddd; padding: 8px; text-align: left; } .print-table th { background-color: #f2f2f2; } .day-container { page-break-inside: avoid; } p { margin: 0; padding: 10px 0; }</style></head><body><h1>${appSettings.appName}</h1><h2>${title}</h2>${reportBodyHtml}</body></html>`; const printWindow = window.open('', '_blank'); printWindow.document.write(printHtml); printWindow.document.close(); printWindow.focus(); setTimeout(() => { printWindow.print(); printWindow.close(); }, 250); }
-        function renderChart(chartData) { if (chartData.error) { console.error(chartData.error); return; } const ctx = document.getElementById('appointmentsChart').getContext('2d'); if (appointmentsChart) appointmentsChart.destroy(); appointmentsChart = new Chart(ctx, { type: 'bar', data: { labels: chartData.labels, datasets: [{ label: 'Nº de Marcações', data: chartData.data, backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--theme-color') + 'B3', borderColor: getComputedStyle(document.documentElement).getPropertyValue('--theme-color'), borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } }); }
-        function populateSettingsForm() { const form = document.getElementById('settings-form'); const friendlyNames = { appName: 'Nome da App', appLogoUrl: 'URL do Logo', appCoverUrl: 'URL da Imagem de Capa', appAddress: 'Endereço', appPhone: 'Telefone', startTime: 'Horário de Início', endTime: 'Horário de Fim', interval: 'Intervalo (minutos)', dateLimit: 'Limite de Dias para Marcar', allowWeekend: 'Permitir Fim de Semana (SIM/NAO)', blockedWeekdays: 'Dias da Semana Bloqueados', themeColor: 'Cor Principal da App', adminUser: 'Utilizador Admin', adminPass: 'Palavra-passe Admin', schedulingEndDate: 'Data de Encerramento (dd/mm/aaaa)', schedulingEndedMsg: 'Mensagem de Encerramento', customerNotice: 'Aviso para Clientes', whatsappMessageTemplate: 'Template da Mensagem WhatsApp', supportNumber: 'Nº de Suporte WhatsApp (só dígitos)' }; let formHtml = ''; for (const key in friendlyNames) { if (Object.prototype.hasOwnProperty.call(appSettings, key) || appSettings[key] === undefined) { let inputType = 'text'; let fieldValue = appSettings[key] || ''; if (key === 'startTime' || key === 'endTime') inputType = 'time'; else if (key === 'interval' || key === 'dateLimit') inputType = 'number'; else if (key === 'themeColor') inputType = 'color'; else if (key === 'adminPass') inputType = 'password'; let extraAttributes = ''; if (key === 'schedulingEndDate') { extraAttributes = 'oninput="formatDate(this)" maxlength="10" placeholder="dd/mm/aaaa"'; } if (key === 'whatsappMessageTemplate' || key === 'schedulingEndedMsg' || key === 'customerNotice') { formHtml += `<div class="mb-4"><label for="setting-${key}" class="block text-gray-600 mb-1">${friendlyNames[key]}</label><textarea id="setting-${key}" name="${key}" rows="4" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 theme-ring">${fieldValue}</textarea></div>`; if (key === 'whatsappMessageTemplate') { formHtml += `<p class="text-xs text-gray-500 -mt-2 mb-4">Use as variáveis <strong>[NOME]</strong>, <strong>[DATA]</strong> e <strong>[HORA]</strong> para personalizar a mensagem.</p>`; } } else { formHtml += `<div class="mb-4"><label for="setting-${key}" class="block text-gray-600 mb-1">${friendlyNames[key]}</label><input type="${inputType}" id="setting-${key}" name="${key}" value="${fieldValue}" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 theme-ring" ${extraAttributes}></div>`; } if (key === 'blockedWeekdays') { formHtml += `<p class="text-xs text-gray-500 -mt-2 mb-4">Use: 0=Dom, 1=Seg, 2=Ter, 3=Qua, 4=Qui, 5=Sex, 6=Sáb, separados por vírgula.</p>`; } } } formHtml += `<button type="submit" id="save-settings-btn" class="w-full theme-bg theme-hover-bg text-white font-bold py-3 px-4 rounded-lg">Guardar Alterações</button>`; form.innerHTML = formHtml; form.addEventListener('submit', handleSettingsSave); }
-        function switchAdminTab(targetTab) { document.querySelectorAll('.admin-tab').forEach(t => { t.classList.remove('theme-text', 'theme-border', 'border-b-2'); t.classList.add('text-gray-500'); }); document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden')); if (targetTab === 'dashboard') { document.getElementById('tab-dashboard').classList.add('theme-text', 'theme-border', 'border-b-2'); document.getElementById('admin-dashboard').classList.remove('hidden'); } else if (targetTab === 'blocks') { document.getElementById('tab-blocks').classList.add('theme-text', 'theme-border', 'border-b-2'); document.getElementById('admin-blocks').classList.remove('hidden'); loadBlocksList(); } else if (targetTab === 'settings') { document.getElementById('tab-settings').classList.add('theme-text', 'theme-border', 'border-b-2'); document.getElementById('admin-settings').classList.remove('hidden'); populateSettingsForm(); } }
-        async function loadBlocksList() { document.getElementById('blocks-list').innerHTML = '<div class="loader mx-auto"></div>'; try { const blocks = await callApi('getBlockedSlots'); renderBlocksList(blocks); } catch(error) { document.getElementById('blocks-list').innerHTML = `<p class="text-red-500">${error.message}</p>`;} }
-        function renderBlocksList(blocks) { const listDiv = document.getElementById('blocks-list'); if (!blocks || blocks.length === 0) { listDiv.innerHTML = '<p class="text-gray-500">Nenhum bloqueio cadastrado.</p>'; return; } let html = '<div class="overflow-x-auto"><table class="min-w-full bg-white border"><thead class="bg-gray-50"><tr><th class="py-2 px-4 border-b text-left">Data</th><th class="py-2 px-4 border-b text-left">Hora</th><th class="py-2 px-4 border-b text-left">Ação</th></tr></thead><tbody>'; blocks.forEach(block => { html += `<tr><td class="py-2 px-4 border-b">${block.date}</td><td class="py-2 px-4 border-b">${block.time || 'Dia inteiro'}</td><td class="py-2 px-4 border-b"><button onclick="confirmDeleteBlock(${block.row})" class="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded text-xs"><i class="fas fa-trash-alt"></i></button></td></tr>`; }); html += '</tbody></table></div>'; listDiv.innerHTML = html; }
-        function confirmDeleteBlock(rowNumber) { const onConfirm = async () => { try { const response = await callApi('deleteBlock', { rowNumber }); if (response.success) { loadBlocksList(); } else { showCustomAlert(response.message || "Erro ao deletar bloqueio."); } } catch(error) { showCustomAlert(error.message); } }; showCustomConfirm("Tem certeza que deseja remover este bloqueio?", onConfirm); }
-        function addEventListeners() { document.getElementById('booking-form').addEventListener('submit', handleBookingSubmit); ['fullName', 'phone', 'bookingDate'].forEach(id => document.getElementById(id).addEventListener('input', updateSubmitButtonState)); document.getElementById('bookingDate').addEventListener('change', fetchAvailableSlots); document.getElementById('admin-link').addEventListener('click', (e) => { e.preventDefault(); showScreen('login-screen'); }); document.getElementById('login-form').addEventListener('submit', handleAdminLogin); document.getElementById('logout-btn').addEventListener('click', () => { window.location.reload(); }); document.getElementById('report-date').addEventListener('change', loadDailyDashboard); document.getElementById('view-day-btn').addEventListener('click', loadDailyDashboard); document.getElementById('view-week-btn').addEventListener('click', loadWeeklyDashboard); document.getElementById('tab-dashboard').addEventListener('click', () => switchAdminTab('dashboard')); document.getElementById('tab-blocks').addEventListener('click', () => switchAdminTab('blocks')); document.getElementById('tab-settings').addEventListener('click', () => switchAdminTab('settings')); document.getElementById('chart-start-date').addEventListener('change', loadChartData); document.getElementById('chart-end-date').addEventListener('change', loadChartData); const confirmModal = document.getElementById('custom-confirm-modal'); const confirmOkBtn = document.getElementById('confirm-ok-btn'); const confirmCancelBtn = document.getElementById('confirm-cancel-btn'); const alertModal = document.getElementById('custom-alert-modal'); const alertOkBtn = document.getElementById('alert-ok-btn'); const editModal = document.getElementById('edit-modal'); const editModalDate = document.getElementById('edit-modal-date'); const editModalSaveBtn = document.getElementById('edit-modal-save-btn'); const editModalCancelBtn = document.getElementById('edit-modal-cancel-btn'); const addBlockForm = document.getElementById('add-block-form'); confirmOkBtn.addEventListener('click', () => { if (modalConfirmCallback) modalConfirmCallback(); confirmModal.classList.add('hidden'); modalConfirmCallback = null; }); confirmCancelBtn.addEventListener('click', () => { confirmModal.classList.add('hidden'); modalConfirmCallback = null; }); alertOkBtn.addEventListener('click', () => { alertModal.classList.add('hidden'); }); editModalCancelBtn.addEventListener('click', () => { editModal.classList.add('hidden'); }); editModalDate.addEventListener('change', () => fetchAvailableSlotsForEditor(editModalDate.value, null)); editModalSaveBtn.addEventListener('click', async () => { const editData = { appointmentId: document.getElementById('edit-modal-appointment-id').value, newDate: document.getElementById('edit-modal-date').value, newTime: editAppointmentData.selectedTime }; if (!editData.newTime) { showCustomAlert("Por favor, selecione um novo horário."); return; } document.body.style.cursor = 'wait'; try { const response = await callApi('editAppointment', { editData }); editModal.classList.add('hidden'); showCustomAlert(response.message); if (response.success) { if(lastReportType === 'daily') { loadDailyDashboard(); } else { loadWeeklyDashboard(); } } } finally { document.body.style.cursor = 'default'; } }); addBlockForm.addEventListener('submit', async (e) => { e.preventDefault(); const date = document.getElementById('block-date').value; const time = document.getElementById('block-time').value; if (!date) { showCustomAlert("Por favor, selecione uma data para o bloqueio."); return; } const btn = e.target.querySelector('button[type="submit"]'); const originalText = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<div class="loader mx-auto" style="width: 20px; height: 20px; border-width: 2px;"></div>'; try { const response = await callApi('addBlock', { blockData: { date, time }}); if (response.success) { addBlockForm.reset(); loadBlocksList(); } else { showCustomAlert(response.message || "Erro ao adicionar bloqueio."); } } finally { btn.disabled = false; btn.innerHTML = originalText; } }); }
-        function showInfoModal() { const noticeContent = document.getElementById('info-modal-content'); const supportSection = document.getElementById('info-modal-support-section'); let contentHtml = ''; const hasNotice = appSettings.customerNotice && String(appSettings.customerNotice).trim() !== ""; const hasSupport = appSettings.supportNumber && String(appSettings.supportNumber).trim() !== ""; if (hasNotice) { contentHtml += `<h3 class="text-xl leading-6 font-bold text-gray-800">Aviso Importante</h3><div class="text-base text-gray-600"><p>${appSettings.customerNotice.replace(/\n/g, '<br>')}</p></div>`; } if (!hasNotice && !hasSupport) { showCustomAlert('Nenhuma informação ou contato de suporte disponível no momento.'); return; } if (!hasNotice && hasSupport) { contentHtml += `<h3 class="text-xl leading-6 font-bold text-gray-800">Suporte</h3>`; } noticeContent.innerHTML = contentHtml; if (hasSupport) { supportSection.classList.remove('hidden'); } else { supportSection.classList.add('hidden'); } document.getElementById('info-modal').classList.remove('hidden'); }
-        function hideInfoModal() { document.getElementById('info-modal').classList.add('hidden'); }
-        function toggleInfoSupportButton() { const infoButton = document.getElementById('info-support-button'); const hasNotice = appSettings.customerNotice && String(appSettings.customerNotice).trim() !== ""; const hasSupport = appSettings.supportNumber && String(appSettings.supportNumber).trim() !== ""; if (hasNotice || hasSupport) { infoButton.classList.remove('hidden'); } else { infoButton.classList.add('hidden'); } }
-        function sendWhatsAppMessage(app) { if (!appSettings.whatsappMessageTemplate) { showCustomAlert("O template da mensagem WhatsApp não foi definido nas configurações."); return; } const reportDate = app.date || document.getElementById('report-date').value; const dateParts = reportDate.split('-'); const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`; let message = appSettings.whatsappMessageTemplate.replace(/\[NOME\]/g, app.name).replace(/\[DATA\]/g, formattedDate).replace(/\[HORA\]/g, app.time); let phone = app.phone.replace(/\D/g, ''); if (phone.length <= 11 && !phone.startsWith('55')) { phone = '55' + phone; } const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`; window.open(whatsappUrl, '_blank'); }
-        function handleSupportClick() { const supportNumber = appSettings.supportNumber.replace(/\D/g, ''); let phone = supportNumber; if (phone.length <= 11 && !phone.startsWith('55')) { phone = '55' + phone; } const message = "Olá! Preciso de ajuda com o sistema de agendamento."; const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`; window.open(whatsappUrl, '_blank'); }
+        function formatPhone(i) {
+            let v = i.value.replace(/\D/g,'').substring(0,11);
+            if(v.length>10) v = `(${v.substring(0,2)}) ${v.substring(2,7)}-${v.substring(7)}`; else if(v.length>5) v = `(${v.substring(0,2)}) ${v.substring(2,6)}-${v.substring(6)}`; else if(v.length>2) v = `(${v.substring(0,2)}) ${v.substring(2)}`;
+            i.value = v;
+        }
+
+        function toggleWeekday(btn, dayIndex) {
+            const input = document.getElementById('blockedWeekdaysInput');
+            let current = input.value ? input.value.split(',') : [];
+            const idxStr = String(dayIndex);
+            if (current.includes(idxStr)) { current = current.filter(d => d !== idxStr); btn.classList.remove('bg-red-500', 'text-white'); btn.classList.add('bg-gray-200', 'text-gray-600'); } 
+            else { current.push(idxStr); btn.classList.remove('bg-gray-200', 'text-gray-600'); btn.classList.add('bg-red-500', 'text-white'); }
+            input.value = current.join(',');
+        }
+
+        function setupEvents() {
+            document.getElementById('bookingDate').addEventListener('change', fetchAvailableSlots);
+            document.getElementById('booking-form').addEventListener('submit', submitBooking);
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+            document.getElementById('block-form').addEventListener('submit', addBlockSubmit);
+            document.getElementById('logout-btn').addEventListener('click', () => location.reload());
+        }
+        
+        function openHistoryModal() { document.getElementById('history-modal').classList.remove('hidden'); }
+        function closeHistoryModal() { document.getElementById('history-modal').classList.add('hidden'); }
+        async function fetchClientHistory() {
+             const p = document.getElementById('history-phone').value;
+             const l = document.getElementById('history-list');
+             l.innerHTML = 'Carregando...';
+             const r = await callApi('getClientHistory', {phone: p});
+             if(r.success && r.history.length) l.innerHTML = r.history.map(i => `<div class="bg-gray-50 p-2 rounded border-l-4 border-slate-800 text-sm"><p class="font-bold">${i.date} - ${i.time}</p><p>${i.name}</p></div>`).join('');
+             else l.innerHTML = 'Nada encontrado.';
+        }
     </script>
 </body>
 </html>
