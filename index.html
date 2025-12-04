@@ -15,28 +15,73 @@
         :root { --theme-color: #0f172a; }
         body { font-family: 'Roboto', sans-serif; background-color: #f8fafc; -webkit-tap-highlight-color: transparent; }
         
-        .fade-in { animation: fadeIn 0.4s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
         
-        /* Loader Genérico */
         .loader { border: 3px solid #e2e8f0; border-radius: 50%; border-top: 3px solid var(--theme-color); width: 30px; height: 30px; animation: spin 0.8s linear infinite; }
-        
-        /* Loader do Botão (Branco) */
         .btn-loader { border: 3px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top: 3px solid #ffffff; width: 20px; height: 20px; animation: spin 0.8s linear infinite; display: inline-block; }
         
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        /* APLICAR COR DO TEMA COM PRIORIDADE */
         .theme-bg { background-color: var(--theme-color) !important; }
         .theme-text { color: var(--theme-color) !important; }
         .theme-ring:focus { ring-color: var(--theme-color); box-shadow: 0 0 0 2px var(--theme-color); }
         
-        /* Cor do hover nos botões de horário não selecionados */
-        .slot-btn:hover:not(.theme-bg) { background-color: #e2e8f0; }
-
         .admin-tab-active { border-bottom: 3px solid var(--theme-color); color: var(--theme-color); font-weight: 700; }
         .admin-tab-inactive { color: #64748b; }
         .modal-backdrop { background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); }
+        
+        /* --- CORREÇÃO CRÍTICA PARA IOS/IPHONE --- */
+        
+        /* Reset total de aparência para evitar estilos nativos que quebram o layout */
+        input, select, textarea {
+            -webkit-appearance: none !important;
+            appearance: none !important;
+            border-radius: 0.5rem; /* Força borda arredondada igual em todos */
+            max-width: 100%;
+            width: 100%;
+            box-sizing: border-box;
+            min-height: 48px; /* Altura confortável para toque */
+            font-size: 16px !important; /* Evita zoom automático no iPhone ao clicar */
+        }
+
+        /* Exceção para checkbox e radio que precisam da aparência nativa ou customizada */
+        input[type="radio"], input[type="checkbox"] {
+            -webkit-appearance: none;
+            appearance: none;
+            min-height: auto;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ccc;
+            border-radius: 50%; /* Radio redondo */
+            display: inline-block;
+            position: relative;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        input[type="radio"]:checked {
+            border-color: var(--theme-color);
+            background-color: var(--theme-color);
+            box-shadow: inset 0 0 0 3px white;
+        }
+        input[type="checkbox"] {
+            border-radius: 4px; /* Checkbox quadrado */
+        }
+        input[type="checkbox"]:checked {
+            background-color: var(--theme-color);
+            border-color: var(--theme-color);
+            background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+        }
+
+        /* Correção específica para campo de Data no iPhone */
+        input[type="date"] {
+            display: block;
+            background-color: #fff; /* Garante fundo branco */
+            /* Alinha o texto da data verticalmente */
+            line-height: 48px; 
+            padding-top: 0;
+            padding-bottom: 0;
+        }
 
         @media print {
             body * { visibility: hidden; }
@@ -58,7 +103,7 @@
         <!-- TELA CLIENTE -->
         <div id="form-screen" class="fade-in flex-grow flex flex-col">
             <div class="relative h-40 bg-gray-200 overflow-hidden shrink-0">
-                <div id="cover-photo" class="absolute inset-0 bg-cover bg-center" style="background-image: url('https://placehold.co/600x200/0f172a/FFFFFF?text=Prefeitura');"></div>
+                <div id="cover-photo" class="absolute inset-0 bg-cover bg-center" style="background-image: url('https://placehold.co/600x200/0f172a/FFFFFF?text=Carregando');"></div>
                 <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                 <button onclick="openHistoryModal()" class="absolute top-4 right-4 bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-bold hover:bg-white/30 transition">
                     <i class="fas fa-history mr-1"></i> Meus Agendamentos
@@ -66,47 +111,54 @@
             </div>
 
             <div class="px-6 -mt-10 relative shrink-0">
-                <img id="app-logo" src="https://placehold.co/100x100/eeeeee/333?text=Logo" class="w-20 h-20 rounded-xl border-4 border-white shadow-lg bg-white object-contain mx-auto">
+                <img id="app-logo" src="https://placehold.co/100x100/eeeeee/333?text=..." class="w-20 h-20 rounded-xl border-4 border-white shadow-lg bg-white object-contain mx-auto">
                 <div class="text-center mt-3">
-                    <h1 id="app-name" class="text-2xl font-bold text-gray-800">Carregando...</h1>
+                    <h1 id="app-name" class="text-2xl font-bold text-gray-800">...</h1>
                     <p id="app-desc" class="text-sm text-gray-500 mt-1">Agendamento Online</p>
                 </div>
             </div>
 
-            <div id="customer-notice-area" class="hidden px-6 mt-4">
+            <div id="customer-notice-area" class="hidden px-4 mt-4">
                 <div class="bg-blue-50 border-l-4 border-blue-500 p-3 text-sm text-blue-700 rounded-r shadow-sm">
                     <p id="customer-notice-text"></p>
                 </div>
             </div>
 
-            <form id="booking-form" class="p-6 space-y-5 flex-grow">
+            <form id="booking-form" class="p-4 sm:p-6 space-y-4 flex-grow w-full max-w-full overflow-hidden">
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Seus Dados</label>
                     <div class="space-y-3">
-                        <div class="relative">
-                            <i class="fas fa-user absolute left-3 top-3 text-gray-400"></i>
-                            <input type="text" id="fullName" placeholder="Nome Completo" class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none theme-ring" required minlength="3">
+                        <!-- CORREÇÃO DO ÍCONE: Usando Flex Container para centralizar perfeitamente -->
+                        <div class="relative w-full">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-user text-gray-400"></i>
+                            </div>
+                            <input type="text" id="fullName" placeholder="Nome Completo" class="w-full pl-10 pr-3 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none theme-ring text-base" required minlength="3">
                         </div>
-                        <div class="relative">
-                            <i class="fab fa-whatsapp absolute left-3 top-3 text-gray-400"></i>
-                            <input type="tel" id="phone" placeholder="WhatsApp (DDD + Número)" class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none theme-ring" required oninput="formatPhone(this)" maxlength="15">
+                        <div class="relative w-full">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fab fa-whatsapp text-gray-400 text-lg"></i>
+                            </div>
+                            <input type="tel" id="phone" placeholder="WhatsApp (DDD + Número)" class="w-full pl-10 pr-3 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none theme-ring text-base" required oninput="formatPhone(this)" maxlength="15">
                         </div>
                     </div>
                 </div>
 
-                <div>
+                <div class="w-full">
                     <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Data do Agendamento</label>
-                    <input type="date" id="bookingDate" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none theme-ring transition" required>
+                    <div class="w-full overflow-hidden rounded-lg">
+                        <input type="date" id="bookingDate" class="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none theme-ring transition text-base block" required>
+                    </div>
                 </div>
 
-                <div id="slots-container" class="hidden fade-in">
+                <div id="slots-container" class="hidden fade-in w-full">
                     <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Horários</label>
-                    <div id="time-slots" class="grid grid-cols-4 gap-2"></div>
+                    <div id="time-slots" class="grid grid-cols-4 gap-2 w-full"></div>
                 </div>
 
                 <div id="form-errors" class="text-red-500 text-sm text-center hidden"></div>
 
-                <button type="submit" id="submit-booking-btn" class="w-full bg-gray-400 text-white font-bold py-4 rounded-xl shadow-lg transform transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <button type="submit" id="submit-booking-btn" class="w-full bg-slate-800 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-slate-900 transform transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                     Confirmar Agendamento
                 </button>
             </form>
@@ -142,8 +194,8 @@
                     <button onclick="closeHistoryModal()" class="text-gray-400 hover:text-red-500 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="flex gap-2 mb-4">
-                    <input type="tel" id="history-phone" placeholder="Seu telefone" class="flex-1 px-4 py-2 border rounded-lg focus:outline-none theme-ring" oninput="formatPhone(this)">
-                    <button onclick="fetchClientHistory()" class="text-white px-4 rounded-lg theme-bg"><i class="fas fa-search"></i></button>
+                    <input type="tel" id="history-phone" placeholder="Seu telefone" class="flex-1 px-4 py-2 border rounded-lg focus:outline-none theme-ring w-full" oninput="formatPhone(this)">
+                    <button onclick="fetchClientHistory()" class="text-white px-4 rounded-lg theme-bg flex-shrink-0"><i class="fas fa-search"></i></button>
                 </div>
                 <div id="history-list" class="flex-1 overflow-y-auto space-y-3 pr-1">
                     <p class="text-center text-gray-400 text-sm mt-10">Busque pelo seu número.</p>
@@ -158,7 +210,7 @@
                      <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-800"><i class="fas fa-lock fa-2x"></i></div>
                      <h2 class="text-2xl font-bold text-gray-800">Painel Admin</h2>
                  </div>
-                 <form id="login-form" class="space-y-4">
+                 <form id="login-form" class="space-y-4 w-full">
                      <input type="text" id="username" placeholder="Usuário" class="w-full px-4 py-3 bg-gray-50 border rounded-lg focus:outline-none theme-ring">
                      <input type="password" id="password" placeholder="Senha" class="w-full px-4 py-3 bg-gray-50 border rounded-lg focus:outline-none theme-ring">
                      <button type="submit" id="login-btn" class="w-full py-3 text-white font-bold rounded-lg shadow transition flex items-center justify-center theme-bg hover:opacity-90">Entrar</button>
@@ -183,17 +235,16 @@
                 <button onclick="switchAdminTab('settings')" id="tab-settings" class="flex-1 py-3 text-center admin-tab-inactive transition">Config</button>
             </div>
             <div class="flex-grow p-4 overflow-y-auto pb-20">
+                
+                <!-- ABA DASHBOARD (Mantida igual) -->
                 <div id="content-dashboard" class="space-y-4 fade-in">
                     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
                         <button onclick="changePeriod(-1)" class="nav-btn w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition"><i class="fas fa-chevron-left"></i></button>
-                        <div class="text-center">
-                            <p class="text-xs text-gray-400 font-bold uppercase tracking-wide">Período</p>
-                            <p id="current-period-display" class="font-bold text-lg text-slate-800">Carregando...</p>
-                        </div>
+                        <div class="text-center"><p class="text-xs text-gray-400 font-bold uppercase tracking-wide">Período</p><p id="current-period-display" class="font-bold text-lg text-slate-800">...</p></div>
                         <button onclick="changePeriod(1)" class="nav-btn w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition"><i class="fas fa-chevron-right"></i></button>
                     </div>
                     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-                        <div><span class="text-xs text-gray-400 uppercase font-bold">Total Agendamentos</span><h3 id="dash-total" class="text-3xl font-bold text-slate-800 mt-1">-</h3></div>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold">Total</span><h3 id="dash-total" class="text-3xl font-bold text-slate-800 mt-1">-</h3></div>
                         <div class="text-right"><span id="dash-period-label" class="text-[10px] text-green-500 bg-green-50 px-2 py-1 rounded-full font-bold">Hoje</span></div>
                     </div>
                     <div class="bg-white p-2 rounded-lg shadow-sm border border-gray-100 flex justify-between">
@@ -201,10 +252,7 @@
                         <button onclick="setPeriodType('weekly')" class="flex-1 py-2 text-xs font-bold rounded hover:bg-gray-100 transition period-btn" data-type="weekly">SEMANA</button>
                         <button onclick="setPeriodType('monthly')" class="flex-1 py-2 text-xs font-bold rounded hover:bg-gray-100 transition period-btn" data-type="monthly">MÊS</button>
                     </div>
-                    <div id="chart-wrapper" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hidden">
-                        <h4 class="text-xs font-bold text-gray-400 mb-2 uppercase">Evolução</h4>
-                        <div class="h-48"><canvas id="adminChart"></canvas></div>
-                    </div>
+                    <div id="chart-wrapper" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hidden"><div class="h-48"><canvas id="adminChart"></canvas></div></div>
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                         <div class="px-4 py-3 border-b bg-gray-50 flex justify-between items-center">
                             <h3 class="font-bold text-gray-700 text-sm">Lista</h3>
@@ -213,21 +261,54 @@
                         <div id="dashboard-list" class="divide-y divide-gray-100 max-h-96 overflow-y-auto"><p class="text-center text-gray-400 text-sm py-8">Carregando...</p></div>
                     </div>
                 </div>
+
+                <!-- ABA BLOQUEIOS (ATUALIZADA E CORRIGIDA) -->
                 <div id="content-blocks" class="hidden space-y-4 fade-in">
                     <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-                        <h3 class="font-bold text-gray-800 mb-3 text-sm">Novo Bloqueio</h3>
-                        <form id="block-form" class="space-y-3">
-                            <input type="date" id="block-date" class="w-full px-3 py-2 border rounded-lg bg-gray-50 outline-none focus:ring-2 focus:ring-slate-200 theme-ring" required>
-                            <input type="time" id="block-time" class="w-full px-3 py-2 border rounded-lg bg-gray-50 outline-none focus:ring-2 focus:ring-slate-200 theme-ring">
-                            <p class="text-[10px] text-gray-400">* Deixe a hora vazia para bloquear o dia todo.</p>
-                            <button type="submit" class="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg font-bold text-sm">Bloquear</button>
+                        <h3 class="font-bold text-gray-800 mb-4 text-sm">Gerenciar Bloqueios</h3>
+                        
+                        <form id="block-form" class="space-y-4">
+                            <!-- Tipo de Bloqueio com botões nativos corrigidos -->
+                            <div class="flex gap-4 mb-2 items-center">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="blockType" value="specific" checked onchange="toggleBlockType()">
+                                    <span class="text-sm">Dia Específico</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="blockType" value="recurring" onchange="toggleBlockType()">
+                                    <span class="text-sm font-bold text-red-500">Todos os Dias</span>
+                                </label>
+                            </div>
+
+                            <!-- Data (some se for recorrente) - Wrapper overflow hidden para não vazar -->
+                            <div id="block-date-container" class="w-full overflow-hidden rounded-lg">
+                                <label class="text-xs text-gray-500 block mb-1">Data</label>
+                                <input type="date" id="block-date" class="w-full px-3 py-2 border rounded-lg bg-gray-50 outline-none theme-ring block">
+                            </div>
+
+                            <div class="flex gap-2">
+                                <div class="flex-1">
+                                    <label class="text-xs text-gray-500 block mb-1">Início (Opcional)</label>
+                                    <input type="time" id="block-start" class="w-full px-3 py-2 border rounded-lg bg-gray-50 outline-none theme-ring">
+                                </div>
+                                <div class="flex-1">
+                                    <label class="text-xs text-gray-500 block mb-1">Fim (Opcional)</label>
+                                    <input type="time" id="block-end" class="w-full px-3 py-2 border rounded-lg bg-gray-50 outline-none theme-ring">
+                                </div>
+                            </div>
+                            <p class="text-[10px] text-gray-400">* Deixe os horários vazios para bloquear o dia inteiro.</p>
+                            
+                            <button type="submit" class="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-lg font-bold text-sm shadow">Adicionar Bloqueio</button>
                         </form>
                     </div>
+                    
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-                        <div class="px-4 py-3 border-b bg-gray-50"><h3 class="font-bold text-gray-700 text-sm">Bloqueios Ativos</h3></div>
+                        <div class="px-4 py-3 border-b bg-gray-50"><h3 class="font-bold text-gray-700 text-sm">Regras Ativas</h3></div>
                         <div id="blocks-list" class="divide-y divide-gray-100 max-h-64 overflow-y-auto p-2"></div>
                     </div>
                 </div>
+
+                <!-- ABA CONFIGURAÇÕES -->
                 <div id="content-settings" class="hidden space-y-4 fade-in">
                     <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
                         <form id="settings-form" class="space-y-4"></form>
@@ -239,339 +320,140 @@
 
     <a id="float-support-btn" href="#" target="_blank" class="hidden fixed bottom-4 right-4 bg-green-500 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition z-50 animate-bounce"><i class="fab fa-whatsapp fa-2x"></i></a>
 
-    <div id="printable-area" class="hidden">
-        <div class="text-center border-b pb-4 mb-4">
-            <h1 id="print-header-title" class="text-2xl font-bold text-gray-800">Relatório</h1>
-            <p id="print-header-subtitle" class="text-sm text-gray-500"></p>
+    <!-- CUSTOM ALERT MODAL -->
+    <div id="custom-alert" class="hidden fixed inset-0 modal-backdrop z-[60] flex items-center justify-center p-4 fade-in">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl text-center relative">
+            <div id="alert-icon" class="w-16 h-16 rounded-full flex items-center justify-center mb-4 mx-auto text-3xl"></div>
+            <h3 id="alert-title" class="text-xl font-bold text-gray-800 mb-2"></h3>
+            <p id="alert-message" class="text-gray-600 mb-6 text-sm"></p>
+            <button onclick="closeCustomAlert()" class="w-full py-2.5 rounded-lg font-bold transition theme-bg text-white hover:opacity-90">OK</button>
         </div>
-        <table class="w-full text-sm text-left text-gray-500">
-            <thead class="text-xs text-gray-700 uppercase bg-gray-50"><tr><th class="px-2 py-2">Data/Hora</th><th class="px-2 py-2">Nome</th><th class="px-2 py-2">Telefone</th><th class="px-2 py-2">Status</th></tr></thead>
-            <tbody id="print-table-body"></tbody>
-        </table>
-        <div class="mt-8 text-right text-xs text-gray-400 border-t pt-2">Gerado automaticamente pelo sistema.</div>
     </div>
 
+    <!-- CUSTOM CONFIRM MODAL -->
+    <div id="custom-confirm" class="hidden fixed inset-0 modal-backdrop z-[60] flex items-center justify-center p-4 fade-in">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl text-center relative">
+            <div class="w-16 h-16 bg-yellow-100 text-yellow-500 rounded-full flex items-center justify-center mb-4 mx-auto text-3xl"><i class="fas fa-exclamation-triangle"></i></div>
+            <h3 id="confirm-title" class="text-xl font-bold text-gray-800 mb-2"></h3>
+            <p id="confirm-message" class="text-gray-600 mb-6 text-sm"></p>
+            <div class="flex gap-3">
+                <button onclick="closeCustomConfirm(false)" class="flex-1 py-2.5 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition">Cancelar</button>
+                <button id="confirm-yes-btn" class="flex-1 py-2.5 theme-bg text-white rounded-lg font-bold hover:opacity-90 transition">Sim</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="printable-area" class="hidden"><div class="text-center border-b pb-4 mb-4"><h1 id="print-header-title" class="text-2xl font-bold text-gray-800">Relatório</h1><p id="print-header-subtitle" class="text-sm text-gray-500"></p></div><table class="w-full text-sm text-left text-gray-500"><thead class="text-xs text-gray-700 uppercase bg-gray-50"><tr><th class="px-2 py-2">Data/Hora</th><th class="px-2 py-2">Nome</th><th class="px-2 py-2">Telefone</th><th class="px-2 py-2">Status</th></tr></thead><tbody id="print-table-body"></tbody></table></div>
+
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyxVZsp37um5_eyZkrpMaXNnjof3NGgWMo1eIsBoTVQ8_lE39IaBzgmI836zUfVy5ZrGA/exec"; 
+        const API_URL = "https://script.google.com/macros/s/AKfycbx1l0Gt_PHl21XbWDohmOewORryP-XW_vDnFt64TlGBFcXANGFxi0IdyAmQzvLSmgSt/exec"; 
         
         let appSettings = {}, selectedTime = null, adminChart = null, currentDashboardData = null;
         let currentPeriodType = 'daily';
         let currentDateOffset = new Date();
         let isDashboardLoading = false; 
         let currentRequestDate = null; 
+        let confirmCallback = null;
+
+        // ... (Funções de alerta e confirm mantidas)
+        function showCustomAlert(title, message, type = 'success') { const el = document.getElementById('custom-alert'); const iconEl = document.getElementById('alert-icon'); document.getElementById('alert-title').textContent = title; document.getElementById('alert-message').textContent = message; if(type === 'success') { iconEl.className = 'w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mb-4 mx-auto text-3xl'; iconEl.innerHTML = '<i class="fas fa-check"></i>'; } else { iconEl.className = 'w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-4 mx-auto text-3xl'; iconEl.innerHTML = '<i class="fas fa-times"></i>'; } el.classList.remove('hidden'); }
+        function closeCustomAlert() { document.getElementById('custom-alert').classList.add('hidden'); }
+        function showCustomConfirm(title, message, callback) { const el = document.getElementById('custom-confirm'); document.getElementById('confirm-title').textContent = title; document.getElementById('confirm-message').textContent = message; confirmCallback = callback; el.classList.remove('hidden'); }
+        function closeCustomConfirm(isConfirmed) { document.getElementById('custom-confirm').classList.add('hidden'); if(isConfirmed && confirmCallback) confirmCallback(); confirmCallback = null; }
+        document.getElementById('confirm-yes-btn').onclick = () => closeCustomConfirm(true);
 
         async function callApi(action, params = {}) {
-            try {
-                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action, params }) });
-                const data = await res.json();
-                if(data.error) throw new Error(data.error);
-                return data;
-            } catch (e) { console.error(e); return { error: e.message }; }
+            try { const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action, params }) }); const data = await res.json(); if(data.error) throw new Error(data.error); return data; } catch (e) { throw e; } 
         }
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            const settings = await callApi('getAppSettings');
-            appSettings = settings;
-            applySettings(settings);
-            if(settings.supportNumber) {
-                const btn = document.getElementById('float-support-btn');
-                btn.href = `https://wa.me/55${settings.supportNumber.replace(/\D/g,'')}`;
-                btn.classList.remove('hidden');
-            }
-            document.getElementById('loading-screen').classList.add('hidden');
-            document.getElementById('app').classList.remove('hidden');
-            showScreen('form-screen');
-            setupEvents();
-        });
-
-        function applySettings(s) {
-            if(s.appName) {
-                document.getElementById('app-name').textContent = s.appName;
-                document.getElementById('print-header-title').textContent = "Relatório - " + s.appName;
-            }
-            if(s.themeColor) document.documentElement.style.setProperty('--theme-color', s.themeColor);
-            if(s.appLogoUrl) document.getElementById('app-logo').src = s.appLogoUrl;
-            if(s.appCoverUrl) document.getElementById('cover-photo').style.backgroundImage = `url('${s.appCoverUrl}')`;
-            if(s.customerNotice) {
-                document.getElementById('customer-notice-area').classList.remove('hidden');
-                document.getElementById('customer-notice-text').textContent = s.customerNotice;
-            }
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('bookingDate').min = today;
-            document.getElementById('block-date').min = today;
-        }
-
-        async function fetchAvailableSlots() {
-            const dateStr = document.getElementById('bookingDate').value;
-            const slotsDiv = document.getElementById('time-slots');
-            const container = document.getElementById('slots-container');
-            if(!dateStr) return;
+        // --- LÓGICA DE BLOQUEIO ATUALIZADA ---
+        function toggleBlockType() {
+            const type = document.querySelector('input[name="blockType"]:checked').value;
+            const dateContainer = document.getElementById('block-date-container');
+            const dateInput = document.getElementById('block-date');
             
-            const todayStr = new Date().toLocaleDateString('pt-BR', {year:'numeric', month:'2-digit', day:'2-digit'}).split('/').reverse().join('-');
-            if (dateStr < todayStr) {
-                slotsDiv.innerHTML = '<p class="col-span-4 text-center text-red-500 text-xs py-2 bg-red-50 rounded font-bold">Data Inválida (Passado)</p>';
-                container.classList.remove('hidden');
-                return; 
+            if (type === 'recurring') {
+                dateContainer.classList.add('hidden');
+                dateInput.removeAttribute('required');
+            } else {
+                dateContainer.classList.remove('hidden');
+                dateInput.setAttribute('required', 'true');
             }
-
-            container.classList.remove('hidden');
-            slotsDiv.innerHTML = '<div class="col-span-4 text-center"><div class="loader mx-auto"></div></div>';
-            
-            currentRequestDate = dateStr;
-            const slots = await callApi('getAvailableSlots', { dateString: dateStr });
-            if (dateStr !== currentRequestDate) return; 
-            
-            if (slots.length === 0) slotsDiv.innerHTML = '<p class="col-span-4 text-center text-xs text-gray-400 py-2">Sem horários disponíveis.</p>';
-            else slotsDiv.innerHTML = slots.map(t => `<button type="button" onclick="selectTime(this, '${t}')" class="slot-btn py-2 bg-gray-100 rounded text-sm font-bold text-gray-700 transition w-full">${t}</button>`).join('');
         }
 
-        function setPeriodType(type) {
-            if (isDashboardLoading) return;
-            currentPeriodType = type;
-            currentDateOffset = new Date(); 
-            loadDashboard();
-        }
-
-        function changePeriod(direction) {
-            if (isDashboardLoading) return;
-            if (currentPeriodType === 'daily') currentDateOffset.setDate(currentDateOffset.getDate() + direction);
-            else if (currentPeriodType === 'weekly') currentDateOffset.setDate(currentDateOffset.getDate() + (direction * 7));
-            else if (currentPeriodType === 'monthly') currentDateOffset.setMonth(currentDateOffset.getMonth() + direction);
-            loadDashboard();
-        }
-
-        async function loadDashboard() {
-            isDashboardLoading = true;
-            document.querySelectorAll('.nav-btn, .period-btn').forEach(btn => btn.classList.add('opacity-50', 'cursor-not-allowed'));
-            document.querySelectorAll('.period-btn').forEach(b => {
-                if(b.dataset.type === currentPeriodType) {
-                    b.classList.remove('bg-gray-100'); 
-                    b.classList.add('theme-bg', 'text-white');
-                } else {
-                    b.classList.remove('theme-bg', 'text-white');
-                    b.classList.add('bg-gray-100');
-                }
-            });
-
-            const dateStr = currentDateOffset.toISOString().split('T')[0];
-            const listDiv = document.getElementById('dashboard-list');
-            listDiv.innerHTML = '<div class="flex justify-center py-8"><div class="loader"></div></div>';
-            
-            try {
-                const data = await callApi('getAdminDashboardData', { period: currentPeriodType, dateReference: dateStr });
-                currentDashboardData = data; 
-                document.getElementById('dash-total').textContent = data.count || 0;
-                if(data.periodInfo) {
-                    if(currentPeriodType === 'daily') document.getElementById('current-period-display').textContent = data.periodInfo.start;
-                    else document.getElementById('current-period-display').textContent = `${data.periodInfo.start} - ${data.periodInfo.end}`;
-                }
-
-                if (!data.appointments || data.appointments.length === 0) listDiv.innerHTML = '<p class="text-center text-gray-400 py-8 text-sm">Nenhum agendamento.</p>';
-                else {
-                    listDiv.innerHTML = data.appointments.map(a => {
-                        const appData = JSON.stringify(a).replace(/"/g, '&quot;');
-                        return `
-                        <div class="px-4 py-3 flex justify-between items-center hover:bg-gray-50 border-b border-gray-50">
-                            <div><p class="font-bold text-slate-800 text-sm">${a.date} - ${a.time}</p><p class="text-xs text-gray-500 uppercase">${a.name}</p></div>
-                            <div class="flex gap-2">
-                                <button onclick='sendReminder(${appData})' class="w-8 h-8 rounded bg-green-100 text-green-600 flex items-center justify-center text-xs" title="Enviar WhatsApp"><i class="fab fa-whatsapp"></i></button>
-                                <button onclick="deleteAppt('${a.id}')" class="w-8 h-8 rounded bg-red-100 text-red-600 flex items-center justify-center text-xs"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </div>`;
-                    }).join('');
-                }
-
-                const chartWrapper = document.getElementById('chart-wrapper');
-                if (currentPeriodType === 'daily') chartWrapper.classList.add('hidden');
-                else { chartWrapper.classList.remove('hidden'); renderChart(data.chart.labels, data.chart.data); }
-            } catch (e) { listDiv.innerHTML = '<p class="text-red-500 text-center">Erro ao carregar dados.</p>'; }
-            finally { isDashboardLoading = false; document.querySelectorAll('.nav-btn, .period-btn').forEach(btn => btn.classList.remove('opacity-50', 'cursor-not-allowed')); }
-        }
-
-        function sendReminder(app) {
-            let template = appSettings.whatsappMessageTemplate || "Olá [NOME], confirmamos seu agendamento para [DATA] às [HORA].";
-            let msg = template.replace(/\[NOME\]/g, app.name).replace(/\[DATA\]/g, app.date).replace(/\[HORA\]/g, app.time);
-            let phone = "55" + app.phone.replace(/\D/g, '');
-            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
-        }
-
-        async function loadSettingsForm() {
-            const form = document.getElementById('settings-form');
-            const fields = [
-                {k: 'appName', l: 'Nome da App'}, {k: 'appLogoUrl', l: 'URL Logo'}, {k: 'appCoverUrl', l: 'URL Capa'}, {k: 'supportNumber', l: 'WhatsApp Suporte'},
-                {k: 'startTime', l: 'Abertura', t: 'time'}, {k: 'endTime', l: 'Fechamento', t: 'time'},
-                {k: 'interval', l: 'Intervalo (minutos)', t: 'number'}, {k: 'dateLimit', l: 'Dias Futuros', t: 'number'},
-                {k: 'themeColor', l: 'Cor Tema', t: 'color'}, {k: 'customerNotice', l: 'Aviso Tela Inicial', t: 'textarea'},
-                {k: 'whatsappMessageTemplate', l: 'Msg Lembrete (Use [NOME], [DATA], [HORA])', t: 'textarea'},
-                {k: 'adminUser', l: 'Admin User'}, {k: 'adminPass', l: 'Admin Pass', t: 'password'}
-            ];
-            let html = '';
-            fields.forEach(f => {
-                const val = appSettings[f.k] || '';
-                if(f.t === 'textarea') html += `<div><label class="text-xs font-bold text-gray-500">${f.l}</label><textarea name="${f.k}" class="w-full border rounded p-2 text-sm bg-gray-50 h-20 theme-ring">${val}</textarea></div>`;
-                else if(f.t === 'color') html += `<div><label class="text-xs font-bold text-gray-500">${f.l}</label><div class="flex gap-2"><input type="color" name="${f.k}" value="${val}" class="h-9 w-12 rounded"><input type="text" value="${val}" class="flex-1 border rounded p-2 text-sm bg-gray-50 theme-ring" readonly></div></div>`;
-                else html += `<div><label class="text-xs font-bold text-gray-500">${f.l}</label><input type="${f.t||'text'}" name="${f.k}" value="${val}" class="w-full border rounded p-2 text-sm bg-gray-50 theme-ring"></div>`;
-            });
-            const blockedDays = (appSettings.blockedWeekdays || '').split(',').map(d => d.trim());
-            const days = ['D','S','T','Q','Q','S','S']; 
-            html += `<div class="mt-4 border-t pt-4"><label class="text-xs font-bold text-gray-500 block mb-2">Dias Bloqueados (Folgas)</label><div class="flex justify-between gap-1">${days.map((d, i) => `<button type="button" class="w-10 h-10 rounded-full font-bold text-sm transition weekday-btn ${blockedDays.includes(String(i)) ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-600'}" onclick="toggleWeekday(this, ${i})">${d}</button>`).join('')}</div><input type="hidden" name="blockedWeekdays" id="blockedWeekdaysInput" value="${appSettings.blockedWeekdays||''}"></div>`;
-            html += '<button type="submit" class="w-full text-white py-3 rounded font-bold text-sm mt-6 theme-bg hover:opacity-90">Salvar Tudo</button>';
-            form.innerHTML = html;
-            form.onsubmit = async (ev) => {
-                ev.preventDefault();
-                const btn = form.querySelector('button[type="submit"]');
-                btn.innerHTML = 'Salvando...'; btn.disabled = true;
-                const formData = new FormData(form);
-                const newS = {};
-                formData.forEach((v,k) => newS[k] = v);
-                await callApi('updateAppSettings', { newSettings: newS });
-                alert("Salvo!");
-                location.reload();
-            };
-        }
-
-        async function handleLogin(e) {
+        async function addBlockSubmit(e) {
             e.preventDefault();
-            const u = document.getElementById('username').value, p = document.getElementById('password').value;
-            const btn = document.getElementById('login-btn');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<div class="btn-loader mx-auto"></div>';
-            btn.disabled = true;
-            callApi('checkAdminLogin', {credentials:{username:u, password:p}}).then(res => {
-                if(res.success) { showScreen('admin-panel-screen'); currentPeriodType = 'monthly'; loadDashboard(); } 
-                else { alert(res.message); }
-                btn.innerHTML = originalText; btn.disabled = false;
-            });
-        }
-
-        function selectTime(btn, time) {
-            // CORREÇÃO: Remove classes genéricas e força a theme-bg
-            document.querySelectorAll('.slot-btn').forEach(b => { 
-                b.classList.remove('theme-bg', 'text-white'); 
-                b.classList.add('bg-gray-100', 'text-gray-700'); 
-            });
-            btn.classList.remove('bg-gray-100', 'text-gray-700'); 
-            btn.classList.add('theme-bg', 'text-white'); 
-            selectedTime = time;
+            const type = document.querySelector('input[name="blockType"]:checked').value;
+            const date = document.getElementById('block-date').value;
+            const start = document.getElementById('block-start').value;
+            const end = document.getElementById('block-end').value;
             
-            const submitBtn = document.getElementById('submit-booking-btn');
-            submitBtn.disabled = false;
-            submitBtn.classList.remove('bg-gray-400');
-            submitBtn.classList.add('theme-bg', 'hover:opacity-90');
-        }
+            const blockData = { type: type, startTime: start, endTime: end };
+            if (type === 'specific') {
+                if (!date) return showCustomAlert('Erro', 'Selecione uma data.', 'error');
+                blockData.date = date;
+            }
 
-        async function submitBooking(e) {
-            e.preventDefault();
-            const btn = document.getElementById('submit-booking-btn');
-            btn.innerHTML = 'Processando...'; btn.disabled = true;
-            const data = { fullName: document.getElementById('fullName').value, phone: document.getElementById('phone').value, date: document.getElementById('bookingDate').value, time: selectedTime };
-            const res = await callApi('saveAppointment', { bookingData: data });
-            if (res.success) {
-                document.getElementById('confirm-name').textContent = data.fullName;
-                const d = data.date.split('-');
-                document.getElementById('confirm-date').textContent = `${d[2]}/${d[1]}/${d[0]}`;
-                document.getElementById('confirm-time').textContent = data.time;
-                document.getElementById('confirmation-screen').classList.remove('hidden');
-            } else { alert(res.message); btn.innerHTML = 'Confirmar Agendamento'; btn.disabled = false; }
-        }
-
-        function renderChart(labels, values) {
-            const ctx = document.getElementById('adminChart').getContext('2d');
-            if(adminChart) adminChart.destroy();
-            adminChart = new Chart(ctx, {
-                type: 'line',
-                data: { labels: labels, datasets: [{ label: 'Agendamentos', data: values, borderColor: getComputedStyle(document.documentElement).getPropertyValue('--theme-color'), backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--theme-color') + '20', fill: true, tension: 0.4 }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
-            });
-        }
-
-        function preparePrint() {
-            if (!currentDashboardData || !currentDashboardData.appointments) return alert("Nada para imprimir.");
-            const tbody = document.getElementById('print-table-body');
-            document.getElementById('print-header-subtitle').textContent = currentDashboardData.periodInfo ? `Período: ${currentDashboardData.periodInfo.start} a ${currentDashboardData.periodInfo.end}` : "Relatório";
-            tbody.innerHTML = currentDashboardData.appointments.map(a => `<tr class="bg-white border-b"><td class="px-2 py-2 font-medium text-gray-900">${a.date} ${a.time}</td><td class="px-2 py-2">${a.name}</td><td class="px-2 py-2">${a.phone}</td><td class="px-2 py-2"><span class="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded">Confirmado</span></td></tr>`).join('');
-            window.print();
+            try {
+                await callApi('addBlock', { blockData: blockData });
+                document.getElementById('block-form').reset();
+                // Reset visual state
+                document.querySelector('input[value="specific"]').checked = true;
+                toggleBlockType();
+                loadBlocks();
+                showCustomAlert('Sucesso', 'Bloqueio criado com sucesso!');
+            } catch(e) {
+                showCustomAlert('Erro', 'Falha ao criar bloqueio.', 'error');
+            }
         }
 
         async function loadBlocks() {
             const list = document.getElementById('blocks-list');
             list.innerHTML = '<div class="flex justify-center p-4"><div class="loader"></div></div>';
-            const blocks = await callApi('getBlockedSlots');
-            if(!blocks || blocks.length === 0) list.innerHTML = '<p class="text-center text-gray-400 text-xs p-4">Sem bloqueios ativos.</p>';
-            else list.innerHTML = blocks.map(b => `<div class="px-4 py-3 flex justify-between items-center text-sm hover:bg-gray-50"><span class="font-bold text-gray-700">${b.date} <span class="font-normal text-gray-400 text-xs ml-2">${b.time || 'Dia Inteiro'}</span></span><button onclick="removeBlock(${b.row})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button></div>`).join('');
+            try {
+                const blocks = await callApi('getBlockedSlots');
+                if(!blocks || blocks.length === 0) list.innerHTML = '<p class="text-center text-gray-400 text-xs p-4">Sem bloqueios ativos.</p>';
+                else list.innerHTML = blocks.map(b => {
+                    const label = b.date === 'RECORRENTE' ? '<span class="text-red-500 font-bold">Todos os Dias</span>' : b.date;
+                    const timeLabel = (b.startTime && b.endTime) ? `${b.startTime} - ${b.endTime}` : 'Dia Inteiro';
+                    return `
+                    <div class="px-4 py-3 flex justify-between items-center text-sm hover:bg-gray-50 border-b border-gray-50 last:border-0">
+                        <div>
+                            <p>${label}</p>
+                            <p class="text-xs text-gray-400">${timeLabel}</p>
+                        </div>
+                        <button onclick="removeBlock(${b.row})" class="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded-lg"><i class="fas fa-trash"></i></button>
+                    </div>`;
+                }).join('');
+            } catch (e) { list.innerHTML = '<p class="text-center text-red-500 text-xs">Erro ao carregar.</p>'; }
         }
 
-        async function addBlockSubmit(e) {
-            e.preventDefault();
-            const date = document.getElementById('block-date').value;
-            const time = document.getElementById('block-time').value;
-            await callApi('addBlock', { blockData: { date, time } });
-            document.getElementById('block-form').reset(); loadBlocks();
-        }
-
-        async function removeBlock(row) { if(!confirm("Remover?")) return; await callApi('deleteBlock', { rowNumber: row }); loadBlocks(); }
-        async function deleteAppt(id) { if(!confirm("Excluir?")) return; await callApi('deleteAppointment', { appointmentId: id }); loadDashboard(); }
-
-        function showScreen(id) {
-            ['form-screen', 'confirmation-screen', 'login-screen', 'admin-panel-screen'].forEach(s => document.getElementById(s).classList.add('hidden'));
-            document.getElementById(id).classList.remove('hidden');
-            window.scrollTo(0,0);
-        }
-        
-        function resetAndShowForm() {
-            document.getElementById('booking-form').reset();
-            selectedTime = null;
-            document.getElementById('slots-container').classList.add('hidden');
-            const btn = document.getElementById('submit-booking-btn');
-            btn.disabled = true;
-            btn.innerHTML = 'Confirmar Agendamento'; 
-            btn.classList.remove('theme-bg', 'hover:opacity-90');
-            btn.classList.add('bg-gray-400');
-            
-            document.getElementById('form-errors').classList.add('hidden');
-            document.getElementById('confirmation-screen').classList.add('hidden');
-            showScreen('form-screen');
-        }
-        
-        function switchAdminTab(tab) {
-            ['dashboard', 'blocks', 'settings'].forEach(t => { document.getElementById(`content-${t}`).classList.add('hidden'); document.getElementById(`tab-${t}`).classList.replace('admin-tab-active', 'admin-tab-inactive'); });
-            document.getElementById(`content-${tab}`).classList.remove('hidden'); document.getElementById(`tab-${tab}`).classList.replace('admin-tab-inactive', 'admin-tab-active');
-            if(tab === 'dashboard') loadDashboard(); if(tab === 'blocks') loadBlocks(); if(tab === 'settings') loadSettingsForm();
-        }
-
-        function formatPhone(i) {
-            let v = i.value.replace(/\D/g,'').substring(0,11);
-            if(v.length>10) v = `(${v.substring(0,2)}) ${v.substring(2,7)}-${v.substring(7)}`; else if(v.length>5) v = `(${v.substring(0,2)}) ${v.substring(2,6)}-${v.substring(6)}`; else if(v.length>2) v = `(${v.substring(0,2)}) ${v.substring(2)}`;
-            i.value = v;
-        }
-
-        function toggleWeekday(btn, dayIndex) {
-            const input = document.getElementById('blockedWeekdaysInput');
-            let current = input.value ? input.value.split(',') : [];
-            const idxStr = String(dayIndex);
-            if (current.includes(idxStr)) { current = current.filter(d => d !== idxStr); btn.classList.remove('bg-red-500', 'text-white'); btn.classList.add('bg-gray-200', 'text-gray-600'); } 
-            else { current.push(idxStr); btn.classList.remove('bg-gray-200', 'text-gray-600'); btn.classList.add('bg-red-500', 'text-white'); }
-            input.value = current.join(',');
-        }
-
-        function setupEvents() {
-            document.getElementById('bookingDate').addEventListener('change', fetchAvailableSlots);
-            document.getElementById('booking-form').addEventListener('submit', submitBooking);
-            document.getElementById('login-form').addEventListener('submit', handleLogin);
-            document.getElementById('block-form').addEventListener('submit', addBlockSubmit);
-            document.getElementById('logout-btn').addEventListener('click', () => location.reload());
-        }
-        
+        // ... (Restante do código igual ao anterior: Inicialização, Agendamento, Dashboard, Settings, etc.)
+        document.addEventListener('DOMContentLoaded', async () => { try { const settings = await callApi('getAppSettings'); appSettings = settings; applySettings(settings); if(settings.supportNumber) { const btn = document.getElementById('float-support-btn'); btn.href = `https://wa.me/55${settings.supportNumber.replace(/\D/g,'')}`; btn.classList.remove('hidden'); } document.getElementById('loading-screen').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); showScreen('form-screen'); setupEvents(); } catch (e) { showCustomAlert('Erro Fatal', 'Não foi possível conectar ao servidor.', 'error'); } });
+        function applySettings(s) { if(s.appName) { document.getElementById('app-name').textContent = s.appName; document.getElementById('print-header-title').textContent = "Relatório - " + s.appName; } if(s.themeColor) document.documentElement.style.setProperty('--theme-color', s.themeColor); if(s.appLogoUrl) document.getElementById('app-logo').src = s.appLogoUrl; if(s.appCoverUrl) document.getElementById('cover-photo').style.backgroundImage = `url('${s.appCoverUrl}')`; if(s.customerNotice) { document.getElementById('customer-notice-area').classList.remove('hidden'); document.getElementById('customer-notice-text').textContent = s.customerNotice; } const today = new Date().toISOString().split('T')[0]; document.getElementById('bookingDate').min = today; document.getElementById('block-date').min = today; }
+        async function fetchAvailableSlots() { const dateStr = document.getElementById('bookingDate').value; const slotsDiv = document.getElementById('time-slots'); const container = document.getElementById('slots-container'); if(!dateStr) return; const todayStr = new Date().toLocaleDateString('pt-BR', {year:'numeric', month:'2-digit', day:'2-digit'}).split('/').reverse().join('-'); if (dateStr < todayStr) { slotsDiv.innerHTML = '<p class="col-span-4 text-center text-red-500 text-xs py-2 bg-red-50 rounded font-bold">Data Inválida (Passado)</p>'; container.classList.remove('hidden'); return; } container.classList.remove('hidden'); slotsDiv.innerHTML = '<div class="col-span-4 text-center"><div class="loader mx-auto"></div></div>'; currentRequestDate = dateStr; try { const slots = await callApi('getAvailableSlots', { dateString: dateStr }); if (dateStr !== currentRequestDate) return; if (slots.length === 0) slotsDiv.innerHTML = '<p class="col-span-4 text-center text-xs text-gray-400 py-2">Sem horários disponíveis.</p>'; else slotsDiv.innerHTML = slots.map(t => `<button type="button" onclick="selectTime(this, '${t}')" class="slot-btn py-2 bg-gray-100 rounded text-sm font-bold text-gray-700 transition w-full">${t}</button>`).join(''); } catch (e) { slotsDiv.innerHTML = '<p class="col-span-4 text-center text-red-500 text-xs">Erro ao carregar.</p>'; } }
+        function setPeriodType(type) { if (isDashboardLoading) return; currentPeriodType = type; currentDateOffset = new Date(); loadDashboard(); }
+        function changePeriod(direction) { if (isDashboardLoading) return; if (currentPeriodType === 'daily') currentDateOffset.setDate(currentDateOffset.getDate() + direction); else if (currentPeriodType === 'weekly') currentDateOffset.setDate(currentDateOffset.getDate() + (direction * 7)); else if (currentPeriodType === 'monthly') currentDateOffset.setMonth(currentDateOffset.getMonth() + direction); loadDashboard(); }
+        async function loadDashboard() { isDashboardLoading = true; document.querySelectorAll('.nav-btn, .period-btn').forEach(btn => btn.classList.add('opacity-50', 'cursor-not-allowed')); document.querySelectorAll('.period-btn').forEach(b => { if(b.dataset.type === currentPeriodType) { b.classList.remove('bg-gray-100'); b.classList.add('theme-bg', 'text-white'); } else { b.classList.remove('theme-bg', 'text-white'); b.classList.add('bg-gray-100'); } }); const dateStr = currentDateOffset.toISOString().split('T')[0]; const listDiv = document.getElementById('dashboard-list'); listDiv.innerHTML = '<div class="flex justify-center py-8"><div class="loader"></div></div>'; try { const data = await callApi('getAdminDashboardData', { period: currentPeriodType, dateReference: dateStr }); currentDashboardData = data; document.getElementById('dash-total').textContent = data.count || 0; if(data.periodInfo) { if(currentPeriodType === 'daily') document.getElementById('current-period-display').textContent = data.periodInfo.start; else document.getElementById('current-period-display').textContent = `${data.periodInfo.start} - ${data.periodInfo.end}`; } if (!data.appointments || data.appointments.length === 0) listDiv.innerHTML = '<p class="text-center text-gray-400 py-8 text-sm">Nenhum agendamento.</p>'; else { listDiv.innerHTML = data.appointments.map(a => { const appData = JSON.stringify(a).replace(/"/g, '&quot;'); return `<div class="px-4 py-3 flex justify-between items-center hover:bg-gray-50 border-b border-gray-50"><div><p class="font-bold text-slate-800 text-sm">${a.date} - ${a.time}</p><p class="text-xs text-gray-500 uppercase">${a.name}</p></div><div class="flex gap-2"><button onclick='sendReminder(${appData})' class="w-8 h-8 rounded bg-green-100 text-green-600 flex items-center justify-center text-xs" title="Enviar WhatsApp"><i class="fab fa-whatsapp"></i></button><button onclick="deleteAppt('${a.id}')" class="w-8 h-8 rounded bg-red-100 text-red-600 flex items-center justify-center text-xs"><i class="fas fa-trash"></i></button></div></div>`; }).join(''); } const chartWrapper = document.getElementById('chart-wrapper'); if (currentPeriodType === 'daily') chartWrapper.classList.add('hidden'); else { chartWrapper.classList.remove('hidden'); renderChart(data.chart.labels, data.chart.data); } } catch (e) { listDiv.innerHTML = '<p class="text-red-500 text-center">Erro ao carregar dados.</p>'; } finally { isDashboardLoading = false; document.querySelectorAll('.nav-btn, .period-btn').forEach(btn => btn.classList.remove('opacity-50', 'cursor-not-allowed')); } }
+        function sendReminder(app) { let template = appSettings.whatsappMessageTemplate || "Olá [NOME], confirmamos seu agendamento para [DATA] às [HORA]."; let msg = template.replace(/\[NOME\]/g, app.name).replace(/\[DATA\]/g, app.date).replace(/\[HORA\]/g, app.time); let phone = "55" + app.phone.replace(/\D/g, ''); window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank'); }
+        async function loadSettingsForm() { const form = document.getElementById('settings-form'); const fields = [ {k: 'appName', l: 'Nome da App'}, {k: 'appLogoUrl', l: 'URL Logo'}, {k: 'appCoverUrl', l: 'URL Capa'}, {k: 'supportNumber', l: 'WhatsApp Suporte'}, {k: 'startTime', l: 'Abertura', t: 'time'}, {k: 'endTime', l: 'Fechamento', t: 'time'}, {k: 'breakStartTime', l: 'Início Intervalo (Almoço)', t: 'time'}, {k: 'breakEndTime', l: 'Fim Intervalo', t: 'time'}, {k: 'interval', l: 'Intervalo (min)', t: 'number'}, {k: 'dateLimit', l: 'Dias Futuros', t: 'number'}, {k: 'themeColor', l: 'Cor Tema', t: 'color'}, {k: 'customerNotice', l: 'Aviso Tela Inicial', t: 'textarea'}, {k: 'whatsappMessageTemplate', l: 'Msg Lembrete', t: 'textarea'}, {k: 'adminUser', l: 'Admin User'}, {k: 'adminPass', l: 'Admin Pass', t: 'password'} ]; let html = ''; fields.forEach(f => { const val = appSettings[f.k] || ''; if(f.t === 'textarea') html += `<div><label class="text-xs font-bold text-gray-500">${f.l}</label><textarea name="${f.k}" class="w-full max-w-full border rounded p-2 text-sm bg-gray-50 h-20 theme-ring">${val}</textarea></div>`; else if(f.t === 'color') html += `<div><label class="text-xs font-bold text-gray-500">${f.l}</label><div class="flex gap-2"><input type="color" name="${f.k}" value="${val}" class="h-9 w-12 rounded"><input type="text" value="${val}" class="flex-1 border rounded p-2 text-sm bg-gray-50 theme-ring" readonly></div></div>`; else html += `<div><label class="text-xs font-bold text-gray-500">${f.l}</label><input type="${f.t||'text'}" name="${f.k}" value="${val}" class="w-full max-w-full border rounded p-2 text-sm bg-gray-50 theme-ring"></div>`; }); const blockedDays = (appSettings.blockedWeekdays || '').split(',').map(d => d.trim()); const days = ['D','S','T','Q','Q','S','S']; html += `<div class="mt-4 border-t pt-4"><label class="text-xs font-bold text-gray-500 block mb-2">Dias Bloqueados (Folgas)</label><div class="flex justify-between gap-1">${days.map((d, i) => `<button type="button" class="w-10 h-10 rounded-full font-bold text-sm transition weekday-btn ${blockedDays.includes(String(i)) ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-600'}" onclick="toggleWeekday(this, ${i})">${d}</button>`).join('')}</div><input type="hidden" name="blockedWeekdays" id="blockedWeekdaysInput" value="${appSettings.blockedWeekdays||''}"></div>`; html += '<button type="submit" class="w-full text-white py-3 rounded font-bold text-sm mt-6 theme-bg hover:opacity-90">Salvar Tudo</button>'; form.innerHTML = html; form.onsubmit = async (ev) => { ev.preventDefault(); const btn = form.querySelector('button[type="submit"]'); btn.innerHTML = 'Salvando...'; btn.disabled = true; const formData = new FormData(form); const newS = {}; formData.forEach((v,k) => newS[k] = v); try { await callApi('updateAppSettings', { newSettings: newS }); showCustomAlert('Sucesso', 'Configurações salvas!'); setTimeout(() => location.reload(), 1500); } catch(e) { showCustomAlert('Erro', 'Falha ao salvar.', 'error'); btn.innerHTML = 'Salvar Tudo'; btn.disabled = false; } }; }
+        async function handleLogin(e) { e.preventDefault(); const u = document.getElementById('username').value, p = document.getElementById('password').value; const btn = document.getElementById('login-btn'); const originalText = btn.innerHTML; btn.innerHTML = '<div class="btn-loader mx-auto"></div>'; btn.disabled = true; try { const res = await callApi('checkAdminLogin', {credentials:{username:u, password:p}}); if(res.success) { showScreen('admin-panel-screen'); currentPeriodType = 'monthly'; loadDashboard(); } else { showCustomAlert('Acesso Negado', res.message, 'error'); } } catch (err) { showCustomAlert('Erro', 'Falha no login.', 'error'); } btn.innerHTML = originalText; btn.disabled = false; }
+        function selectTime(btn, time) { document.querySelectorAll('.slot-btn').forEach(b => { b.classList.remove('theme-bg', 'text-white'); b.classList.add('bg-gray-100', 'text-gray-700'); }); btn.classList.remove('bg-gray-100', 'text-gray-700'); btn.classList.add('theme-bg', 'text-white'); selectedTime = time; const submitBtn = document.getElementById('submit-booking-btn'); submitBtn.disabled = false; submitBtn.classList.remove('bg-gray-400'); submitBtn.classList.add('theme-bg', 'hover:opacity-90'); }
+        async function submitBooking(e) { e.preventDefault(); const btn = document.getElementById('submit-booking-btn'); btn.innerHTML = 'Processando...'; btn.disabled = true; const data = { fullName: document.getElementById('fullName').value, phone: document.getElementById('phone').value, date: document.getElementById('bookingDate').value, time: selectedTime }; try { const res = await callApi('saveAppointment', { bookingData: data }); if (res.success) { document.getElementById('confirm-name').textContent = data.fullName; const d = data.date.split('-'); document.getElementById('confirm-date').textContent = `${d[2]}/${d[1]}/${d[0]}`; document.getElementById('confirm-time').textContent = data.time; document.getElementById('confirmation-screen').classList.remove('hidden'); } else { showCustomAlert('Atenção', res.message, 'error'); btn.innerHTML = 'Confirmar Agendamento'; btn.disabled = false; } } catch (err) { showCustomAlert('Erro', 'Erro ao processar.', 'error'); btn.innerHTML = 'Confirmar Agendamento'; btn.disabled = false; } }
+        function renderChart(labels, values) { const ctx = document.getElementById('adminChart').getContext('2d'); if(adminChart) adminChart.destroy(); adminChart = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [{ label: 'Agendamentos', data: values, borderColor: getComputedStyle(document.documentElement).getPropertyValue('--theme-color'), backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--theme-color') + '20', fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } } }); }
+        function preparePrint() { if (!currentDashboardData || !currentDashboardData.appointments) return showCustomAlert('Aviso', 'Nada para imprimir.', 'error'); const tbody = document.getElementById('print-table-body'); document.getElementById('print-header-subtitle').textContent = currentDashboardData.periodInfo ? `Período: ${currentDashboardData.periodInfo.start} a ${currentDashboardData.periodInfo.end}` : "Relatório"; tbody.innerHTML = currentDashboardData.appointments.map(a => `<tr class="bg-white border-b"><td class="px-2 py-2 font-medium text-gray-900">${a.date} ${a.time}</td><td class="px-2 py-2">${a.name}</td><td class="px-2 py-2">${a.phone}</td><td class="px-2 py-2"><span class="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded">Confirmado</span></td></tr>`).join(''); window.print(); }
+        async function removeBlock(row) { showCustomConfirm('Remover Bloqueio', 'Tem certeza?', async () => { await callApi('deleteBlock', { rowNumber: row }); loadBlocks(); }); }
+        async function deleteAppt(id) { showCustomConfirm('Excluir Agendamento', 'Tem certeza?', async () => { await callApi('deleteAppointment', { appointmentId: id }); loadDashboard(); }); }
+        function showScreen(id) { ['form-screen', 'confirmation-screen', 'login-screen', 'admin-panel-screen'].forEach(s => document.getElementById(s).classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); window.scrollTo(0,0); }
+        function resetAndShowForm() { document.getElementById('booking-form').reset(); selectedTime = null; document.getElementById('slots-container').classList.add('hidden'); const btn = document.getElementById('submit-booking-btn'); btn.disabled = true; btn.innerHTML = 'Confirmar Agendamento'; btn.classList.remove('theme-bg', 'hover:opacity-90'); btn.classList.add('bg-gray-400'); document.getElementById('form-errors').classList.add('hidden'); document.getElementById('confirmation-screen').classList.add('hidden'); showScreen('form-screen'); }
+        function switchAdminTab(tab) { ['dashboard', 'blocks', 'settings'].forEach(t => { document.getElementById(`content-${t}`).classList.add('hidden'); document.getElementById(`tab-${t}`).classList.replace('admin-tab-active', 'admin-tab-inactive'); }); document.getElementById(`content-${tab}`).classList.remove('hidden'); document.getElementById(`tab-${tab}`).classList.replace('admin-tab-inactive', 'admin-tab-active'); if(tab === 'dashboard') loadDashboard(); if(tab === 'blocks') loadBlocks(); if(tab === 'settings') loadSettingsForm(); }
+        function formatPhone(i) { let v = i.value.replace(/\D/g,'').substring(0,11); if(v.length>10) v = `(${v.substring(0,2)}) ${v.substring(2,7)}-${v.substring(7)}`; else if(v.length>5) v = `(${v.substring(0,2)}) ${v.substring(2,6)}-${v.substring(6)}`; else if(v.length>2) v = `(${v.substring(0,2)}) ${v.substring(2)}) ${v.substring(2)}`; i.value = v; }
+        function toggleWeekday(btn, dayIndex) { const input = document.getElementById('blockedWeekdaysInput'); let current = input.value ? input.value.split(',') : []; const idxStr = String(dayIndex); if (current.includes(idxStr)) { current = current.filter(d => d !== idxStr); btn.classList.remove('bg-red-500', 'text-white'); btn.classList.add('bg-gray-200', 'text-gray-600'); } else { current.push(idxStr); btn.classList.remove('bg-gray-200', 'text-gray-600'); btn.classList.add('bg-red-500', 'text-white'); } input.value = current.join(','); }
+        function setupEvents() { document.getElementById('bookingDate').addEventListener('change', fetchAvailableSlots); document.getElementById('booking-form').addEventListener('submit', submitBooking); document.getElementById('login-form').addEventListener('submit', handleLogin); document.getElementById('block-form').addEventListener('submit', addBlockSubmit); document.getElementById('logout-btn').addEventListener('click', () => location.reload()); }
         function openHistoryModal() { document.getElementById('history-modal').classList.remove('hidden'); }
         function closeHistoryModal() { document.getElementById('history-modal').classList.add('hidden'); }
-        async function fetchClientHistory() {
-             const p = document.getElementById('history-phone').value;
-             const l = document.getElementById('history-list');
-             l.innerHTML = 'Carregando...';
-             const r = await callApi('getClientHistory', {phone: p});
-             if(r.success && r.history.length) l.innerHTML = r.history.map(i => `<div class="bg-gray-50 p-2 rounded border-l-4 border-slate-800 text-sm"><p class="font-bold">${i.date} - ${i.time}</p><p>${i.name}</p></div>`).join('');
-             else l.innerHTML = 'Nada encontrado.';
-        }
+        async function fetchClientHistory() { const p = document.getElementById('history-phone').value; const l = document.getElementById('history-list'); l.innerHTML = 'Carregando...'; try { const r = await callApi('getClientHistory', {phone: p}); if(r.success && r.history.length) l.innerHTML = r.history.map(i => `<div class="bg-gray-50 p-2 rounded border-l-4 border-slate-800 text-sm"><p class="font-bold">${i.date} - ${i.time}</p><p>${i.name}</p></div>`).join(''); else l.innerHTML = 'Nada encontrado.'; } catch (e) { l.innerHTML = '<p class="text-red-500 text-center text-sm">Erro ao buscar.</p>'; } }
     </script>
 </body>
 </html>
+
